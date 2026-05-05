@@ -1,120 +1,264 @@
 [package]
-name = "oxideav-format-all"
+name = "oxideav-meta"
 version = "0.0.1"
 edition = "2021"
 rust-version = "1.80"
 license = "MIT"
-repository = "https://github.com/OxideAV/oxideav-format-all"
-homepage = "https://github.com/OxideAV/oxideav-format-all"
+repository = "https://github.com/OxideAV/oxideav-meta"
+homepage = "https://github.com/OxideAV/oxideav-meta"
 authors = ["Mark Karpeles"]
-description = "Virtual aggregator for oxideav — depends on every sibling codec/container/filter/source crate so they self-register into oxideav_core::REGISTRARS via linkme; consumers call oxideav_core::RuntimeContext::with_all_features() to materialise everything"
+description = "Aggregator for oxideav — register_all(ctx) explicitly invokes every enabled sibling's register fn. Build-script auto-generates the call list from active feature flags. Audio/video/image/subtitle/hwaccel preset bundles. Replaces oxideav-format-all + the linkme distributed-slice approach (the latter had wasm caveats)."
 readme = "README.md"
-keywords = ["oxideav", "multimedia", "aggregator", "virtual", "all"]
+keywords = ["oxideav", "multimedia", "aggregator", "meta"]
 categories = ["multimedia"]
 build = "build.rs"
 
-# This crate ships no source — `src/lib.rs` is empty. Its sole purpose
-# is to declare dependencies on every oxideav sibling crate so that
-# linking it pulls them all into the binary, which in turn populates
-# `oxideav_core::REGISTRARS` via the linkme distributed slice each
-# sibling deposits an entry into.
+# Every sibling codec/container/filter/source is an optional cargo
+# feature. Default-features = ["all"] pulls every sibling. Consumers
+# opt down to a subset:
 #
-# Consumers depend on this crate when they want "every codec / container
-# / filter / source the framework knows about" with one line in their
-# Cargo.toml. Slimmer setups should pick individual sibling crates
-# instead.
+#   oxideav-format-all = { version = "*", default-features = false, features = ["image"] }
+#
+# Per-crate features let you slim further:
+#
+#   oxideav-format-all = { version = "*", default-features = false, features = ["png", "jpeg", "webp"] }
+#
+# When a feature is OFF, the sibling rlib isn't compiled and its
+# linkme `oxideav_core::register!` entry doesn't reach the slice.
+# `build.rs` honours the same feature gating when emitting `FORCE_LINK`.
 
 [dependencies]
-# Re-exported for the slice-walker test below; not strictly needed by
-# the aggregator role since each sibling crate already pulls oxideav-core
-# in transitively.
+# oxideav-core is non-optional — the slice walker + register! macro live
+# here. Every sibling depends on it transitively, but listing it
+# explicitly makes the workspace patch redirect work cleanly.
 oxideav-core = "0.1"
 
-# Codec crates (audio).
-oxideav-aac = "0.1"
-oxideav-ac3 = "0.0"
-oxideav-ac4 = "0.0"
-oxideav-adpcm = "0.0"
-oxideav-celt = "0.1"
-oxideav-flac = "0.0"
-oxideav-g711 = "0.0"
-oxideav-g722 = "0.0"
-oxideav-g7231 = "0.0"
-oxideav-g728 = "0.0"
-oxideav-g729 = "0.0"
-oxideav-gsm = "0.0"
-oxideav-ilbc = "0.0"
-oxideav-mp1 = "0.0"
-oxideav-mp2 = "0.0"
-oxideav-mp3 = "0.1"
-oxideav-opus = "0.0"
-oxideav-speex = "0.0"
-oxideav-vorbis = "0.0"
+# All sibling codec/container/filter/source crates as optional deps.
+# Audio codecs.
+oxideav-aac = { version = "0.1", optional = true }
+oxideav-ac3 = { version = "0.0", optional = true }
+oxideav-ac4 = { version = "0.0", optional = true }
+oxideav-adpcm = { version = "0.0", optional = true }
+oxideav-celt = { version = "0.1", optional = true }
+oxideav-flac = { version = "0.0", optional = true }
+oxideav-g711 = { version = "0.0", optional = true }
+oxideav-g722 = { version = "0.0", optional = true }
+oxideav-g7231 = { version = "0.0", optional = true }
+oxideav-g728 = { version = "0.0", optional = true }
+oxideav-g729 = { version = "0.0", optional = true }
+oxideav-gsm = { version = "0.0", optional = true }
+oxideav-ilbc = { version = "0.0", optional = true }
+oxideav-mp1 = { version = "0.0", optional = true }
+oxideav-mp2 = { version = "0.0", optional = true }
+oxideav-mp3 = { version = "0.1", optional = true }
+oxideav-opus = { version = "0.0", optional = true }
+oxideav-speex = { version = "0.0", optional = true }
+oxideav-vorbis = { version = "0.0", optional = true }
 
-# Codec crates (video).
-oxideav-amv = "0.0"
-oxideav-av1 = "0.1"
-oxideav-dirac = "0.0"
-oxideav-ffv1 = "0.0"
-oxideav-h261 = "0.0"
-oxideav-h263 = "0.0"
-oxideav-h264 = "0.1"
-oxideav-h265 = "0.0"
-oxideav-h266 = "0.0"
-oxideav-mjpeg = "0.1"
-oxideav-mpeg12video = "0.0"
-oxideav-mpeg4video = "0.1"
-oxideav-msmpeg4 = "0.0"
-oxideav-prores = "0.0"
-oxideav-theora = "0.0"
-oxideav-vp6 = "0.0"
-oxideav-vp8 = "0.1"
-oxideav-vp9 = "0.0"
+# Video codecs.
+oxideav-amv = { version = "0.0", optional = true }
+oxideav-av1 = { version = "0.1", optional = true }
+oxideav-dirac = { version = "0.0", optional = true }
+oxideav-ffv1 = { version = "0.0", optional = true }
+oxideav-h261 = { version = "0.0", optional = true }
+oxideav-h263 = { version = "0.0", optional = true }
+oxideav-h264 = { version = "0.1", optional = true }
+oxideav-h265 = { version = "0.0", optional = true }
+oxideav-h266 = { version = "0.0", optional = true }
+oxideav-mjpeg = { version = "0.1", optional = true }
+oxideav-mpeg12video = { version = "0.0", optional = true }
+oxideav-mpeg4video = { version = "0.1", optional = true }
+oxideav-msmpeg4 = { version = "0.0", optional = true }
+oxideav-prores = { version = "0.0", optional = true }
+oxideav-theora = { version = "0.0", optional = true }
+oxideav-vp6 = { version = "0.0", optional = true }
+oxideav-vp8 = { version = "0.1", optional = true }
+oxideav-vp9 = { version = "0.0", optional = true }
 
-# Codec crates (image / scene).
-oxideav-avif = "0.0"
-oxideav-dds = "0.0"
-oxideav-gif = "0.0"
-oxideav-icer = "0.0"
-oxideav-jpeg2000 = "0.0"
-oxideav-jpegxl = "0.0"
-oxideav-jpegxs = "0.0"
-oxideav-openexr = "0.0"
-oxideav-pbm = "0.0"
-oxideav-pdf = "0.1"
-oxideav-pict = "0.0"
-oxideav-png = "0.1"
-oxideav-qoi = "0.1"
-oxideav-svg = "0.1"
-oxideav-webp = "0.1"
+# Image codecs.
+oxideav-avif = { version = "0.0", optional = true }
+oxideav-dds = { version = "0.0", optional = true }
+oxideav-gif = { version = "0.0", optional = true }
+oxideav-icer = { version = "0.0", optional = true }
+oxideav-jpeg2000 = { version = "0.0", optional = true }
+oxideav-jpegxl = { version = "0.0", optional = true }
+oxideav-jpegxs = { version = "0.0", optional = true }
+oxideav-openexr = { version = "0.0", optional = true }
+oxideav-pbm = { version = "0.0", optional = true }
+oxideav-pdf = { version = "0.1", optional = true }
+oxideav-pict = { version = "0.0", optional = true }
+oxideav-png = { version = "0.1", optional = true }
+oxideav-qoi = { version = "0.1", optional = true }
+oxideav-svg = { version = "0.1", optional = true }
+oxideav-webp = { version = "0.1", optional = true }
 
-# Container crates.
-oxideav-avi = "0.0"
-oxideav-basic = "0.0"
-oxideav-flv = "0.0"
-oxideav-iff = "0.0"
-oxideav-mkv = "0.0"
-oxideav-mod = "0.0"
-oxideav-mp4 = "0.0"
-oxideav-ogg = "0.1"
-oxideav-s3m = "0.0"
+# Containers (audio/video/mixed).
+oxideav-avi = { version = "0.0", optional = true }
+oxideav-basic = { version = "0.0", optional = true }
+oxideav-flv = { version = "0.0", optional = true }
+oxideav-iff = { version = "0.0", optional = true }
+oxideav-mkv = { version = "0.0", optional = true }
+oxideav-mod = { version = "0.0", optional = true }
+oxideav-mp4 = { version = "0.0", optional = true }
+oxideav-ogg = { version = "0.1", optional = true }
+oxideav-s3m = { version = "0.0", optional = true }
 
 # Subtitle crates.
-oxideav-ass = "0.0"
-oxideav-sub-image = "0.0"
-oxideav-subtitle = "0.1"
+oxideav-ass = { version = "0.0", optional = true }
+oxideav-sub-image = { version = "0.0", optional = true }
+oxideav-subtitle = { version = "0.1", optional = true }
 
 # Filter / generator / source crates.
-oxideav-audio-filter = "0.1"
-oxideav-generator = "0.1"
-oxideav-http = "0.0"
-oxideav-image-filter = "0.1"
-oxideav-source = "0.1"
+oxideav-audio-filter = { version = "0.1", optional = true }
+oxideav-generator = { version = "0.1", optional = true }
+oxideav-http = { version = "0.0", optional = true }
+oxideav-image-filter = { version = "0.1", optional = true }
+oxideav-source = { version = "0.1", optional = true }
 
 # Hardware-accelerated codec crates — macOS-only (the crates are
-# `#![cfg(target_os = "macos")]`). Listed under a target-cfg section so
-# the build.rs auto-gen knows to wrap their `register` fn pointers in
-# `#[cfg(target_os = "macos")]` inside `FORCE_LINK`.
+# `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /
+# `videotoolbox` features can be enabled on any target; the deps just
+# resolve to nothing on non-mac so the feature becomes a no-op.
 [target.'cfg(target_os = "macos")'.dependencies]
-oxideav-audiotoolbox = "0.0"
-oxideav-videotoolbox = "0.0"
+oxideav-audiotoolbox = { version = "0.0", optional = true }
+oxideav-videotoolbox = { version = "0.0", optional = true }
+
+[features]
+# Default pulls everything (every codec / container / filter / source).
+# Disable with `default-features = false` and pick a subset.
+default = ["all"]
+
+# ---------------------------------------------------------------------
+# Preset bundles — pull a coherent subset for a given media domain.
+# ---------------------------------------------------------------------
+
+# All sibling crates the framework knows about.
+all = ["audio", "video", "image", "subtitles", "hwaccel", "source-drivers"]
+
+# Audio: codecs + audio-filter + the containers commonly carrying audio.
+audio = [
+    "aac", "ac3", "ac4", "adpcm", "celt", "flac",
+    "g711", "g722", "g7231", "g728", "g729", "gsm", "ilbc",
+    "mp1", "mp2", "mp3", "opus", "speex", "vorbis",
+    "audio-filter",
+    "mkv", "mp4", "ogg", "iff", "amiga-mod", "s3m", "basic",
+]
+
+# Video: codecs + the containers commonly carrying video.
+video = [
+    "amv", "av1", "dirac", "ffv1",
+    "h261", "h263", "h264", "h265", "h266",
+    "mjpeg", "mpeg12video", "mpeg4video", "msmpeg4",
+    "prores", "theora", "vp6", "vp8", "vp9",
+    "mkv", "mp4", "avi", "flv",
+]
+
+# Image: still + animated image codecs + image-filter.
+image = [
+    "avif", "dds", "gif", "icer",
+    "jpeg2000", "jpegxl", "jpegxs", "openexr",
+    "pbm", "pdf", "pict", "png", "qoi", "svg", "webp",
+    "image-filter",
+]
+
+# Subtitle codecs (preset name is plural to avoid clash with the
+# per-crate `subtitle` feature for `oxideav-subtitle`).
+subtitles = ["ass", "sub-image", "subtitle"]
+
+# Hardware-accelerated codec crates (mac-only on the actual codec
+# side; the feature is harmless to enable on non-mac).
+hwaccel = ["audiotoolbox", "videotoolbox"]
+
+# I/O drivers — `source` is the file:// scheme handler; `http`
+# adds `http(s)://`; `generator` adds `generate://` synth URIs.
+source-drivers = ["source", "http", "generator"]
+
+# ---------------------------------------------------------------------
+# Per-crate features — enable a single sibling without dragging a
+# whole preset.
+# ---------------------------------------------------------------------
+
+# Audio codecs.
+aac = ["dep:oxideav-aac"]
+ac3 = ["dep:oxideav-ac3"]
+ac4 = ["dep:oxideav-ac4"]
+adpcm = ["dep:oxideav-adpcm"]
+celt = ["dep:oxideav-celt"]
+flac = ["dep:oxideav-flac"]
+g711 = ["dep:oxideav-g711"]
+g722 = ["dep:oxideav-g722"]
+g7231 = ["dep:oxideav-g7231"]
+g728 = ["dep:oxideav-g728"]
+g729 = ["dep:oxideav-g729"]
+gsm = ["dep:oxideav-gsm"]
+ilbc = ["dep:oxideav-ilbc"]
+mp1 = ["dep:oxideav-mp1"]
+mp2 = ["dep:oxideav-mp2"]
+mp3 = ["dep:oxideav-mp3"]
+opus = ["dep:oxideav-opus"]
+speex = ["dep:oxideav-speex"]
+vorbis = ["dep:oxideav-vorbis"]
+
+# Video codecs.
+amv = ["dep:oxideav-amv"]
+av1 = ["dep:oxideav-av1"]
+dirac = ["dep:oxideav-dirac"]
+ffv1 = ["dep:oxideav-ffv1"]
+h261 = ["dep:oxideav-h261"]
+h263 = ["dep:oxideav-h263"]
+h264 = ["dep:oxideav-h264"]
+h265 = ["dep:oxideav-h265"]
+h266 = ["dep:oxideav-h266"]
+mjpeg = ["dep:oxideav-mjpeg"]
+mpeg12video = ["dep:oxideav-mpeg12video"]
+mpeg4video = ["dep:oxideav-mpeg4video"]
+msmpeg4 = ["dep:oxideav-msmpeg4"]
+prores = ["dep:oxideav-prores"]
+theora = ["dep:oxideav-theora"]
+vp6 = ["dep:oxideav-vp6"]
+vp8 = ["dep:oxideav-vp8"]
+vp9 = ["dep:oxideav-vp9"]
+
+# Image codecs.
+avif = ["dep:oxideav-avif"]
+dds = ["dep:oxideav-dds"]
+gif = ["dep:oxideav-gif"]
+icer = ["dep:oxideav-icer"]
+jpeg2000 = ["dep:oxideav-jpeg2000"]
+jpegxl = ["dep:oxideav-jpegxl"]
+jpegxs = ["dep:oxideav-jpegxs"]
+openexr = ["dep:oxideav-openexr"]
+pbm = ["dep:oxideav-pbm"]
+pdf = ["dep:oxideav-pdf"]
+pict = ["dep:oxideav-pict"]
+png = ["dep:oxideav-png"]
+qoi = ["dep:oxideav-qoi"]
+svg = ["dep:oxideav-svg"]
+webp = ["dep:oxideav-webp"]
+
+# Containers.
+avi = ["dep:oxideav-avi"]
+basic = ["dep:oxideav-basic"]
+flv = ["dep:oxideav-flv"]
+iff = ["dep:oxideav-iff"]
+mkv = ["dep:oxideav-mkv"]
+amiga-mod = ["dep:oxideav-mod"]
+mp4 = ["dep:oxideav-mp4"]
+ogg = ["dep:oxideav-ogg"]
+s3m = ["dep:oxideav-s3m"]
+
+# Subtitle.
+ass = ["dep:oxideav-ass"]
+sub-image = ["dep:oxideav-sub-image"]
+subtitle = ["dep:oxideav-subtitle"]
+
+# Filter / source.
+audio-filter = ["dep:oxideav-audio-filter"]
+generator = ["dep:oxideav-generator"]
+http = ["dep:oxideav-http"]
+image-filter = ["dep:oxideav-image-filter"]
+source = ["dep:oxideav-source"]
+
+# Hardware accel (mac-only crate body; feature is target-portable).
+audiotoolbox = ["dep:oxideav-audiotoolbox"]
+videotoolbox = ["dep:oxideav-videotoolbox"]

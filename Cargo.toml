@@ -123,6 +123,23 @@ oxideav-source = { version = "0.1", optional = true }
 oxideav-audiotoolbox = { version = "0.0", optional = true }
 oxideav-videotoolbox = { version = "0.0", optional = true }
 
+# Hardware-accelerated codec crates — Linux-only (the crates are
+# `#![cfg(target_os = "linux")]`). VA-API (Intel/AMD-leaning + the
+# nvidia-vaapi-driver shim), VDPAU (NVIDIA + Mesa), and the NVIDIA
+# NVDEC/NVENC bridge. Same target-no-op story: the feature is
+# harmless to enable on non-linux.
+[target.'cfg(target_os = "linux")'.dependencies]
+oxideav-vaapi = { version = "0.0", optional = true }
+oxideav-vdpau = { version = "0.0", optional = true }
+oxideav-nvidia = { version = "0.0", optional = true }
+
+# Vulkan Video — vendor- and OS-neutral. Builds on Linux + Windows
+# (the crate body is gated to `cfg(any(target_os = "linux",
+# target_os = "windows"))`). macOS would route through MoltenVK with
+# a different loading story; out of scope for now.
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+oxideav-vulkan-video = { version = "0.0", optional = true }
+
 [features]
 # Default pulls everything (every codec / container / filter / source).
 # Disable with `default-features = false` and pick a subset.
@@ -165,9 +182,15 @@ image = [
 # per-crate `subtitle` feature for `oxideav-subtitle`).
 subtitles = ["ass", "sub-image", "subtitle"]
 
-# Hardware-accelerated codec crates (mac-only on the actual codec
-# side; the feature is harmless to enable on non-mac).
-hwaccel = ["audiotoolbox", "videotoolbox"]
+# Hardware-accelerated codec crates. Each per-crate feature gates a
+# sibling that's only built on the targets the crate body supports
+# (mac for *toolbox, linux for vaapi/vdpau/nvidia, linux+windows for
+# vulkan-video). Enabling the feature on an unsupported target is a
+# no-op — the dep simply doesn't resolve.
+hwaccel = [
+    "audiotoolbox", "videotoolbox",
+    "vaapi", "vdpau", "nvidia", "vulkan-video",
+]
 
 # I/O drivers — `source` is the file:// scheme handler; `http`
 # adds `http(s)://`; `generator` adds `generate://` synth URIs.
@@ -259,6 +282,11 @@ http = ["dep:oxideav-http"]
 image-filter = ["dep:oxideav-image-filter"]
 source = ["dep:oxideav-source"]
 
-# Hardware accel (mac-only crate body; feature is target-portable).
+# Hardware accel (per-crate body has its own target gate; feature is
+# target-portable — enabling on an unsupported target is a no-op).
 audiotoolbox = ["dep:oxideav-audiotoolbox"]
 videotoolbox = ["dep:oxideav-videotoolbox"]
+vaapi = ["dep:oxideav-vaapi"]
+vdpau = ["dep:oxideav-vdpau"]
+nvidia = ["dep:oxideav-nvidia"]
+vulkan-video = ["dep:oxideav-vulkan-video"]

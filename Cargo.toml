@@ -152,6 +152,12 @@ default = ["all"]
 # All sibling crates the framework knows about.
 all = ["audio", "video", "image", "subtitles", "hwaccel", "source-drivers"]
 
+# Every pure-Rust sibling — same as `all` minus the hardware-engine
+# bridges (audiotoolbox, videotoolbox, vaapi, vdpau, nvidia,
+# vulkan-video). Use this when you want a 100% pure-Rust build with
+# zero FFI to OS HW-engine APIs (libloading'd or otherwise).
+pure-rust = ["audio", "video", "image", "subtitles", "source-drivers"]
+
 # Audio: codecs + audio-filter + the containers commonly carrying audio.
 audio = [
     "aac", "ac3", "ac4", "adpcm", "celt", "flac",

@@ -115,12 +115,6 @@ oxideav-http = { version = "0.0", optional = true }
 oxideav-image-filter = { version = "0.1", optional = true }
 oxideav-source = { version = "0.1", optional = true }
 
-# WinMF emulator — pure-Rust 32-bit x86 emulator + PE loader + Video
-# for Windows host. Runs on any platform Rust supports (the codec
-# never touches the host CPU); not OS-gated. Used for rare/legacy
-# codec compatibility — see docs/winmf/winmf-emulator.md.
-oxideav-vfw = { version = "0.0", optional = true }
-
 # Hardware-accelerated codec crates — macOS-only (the crates are
 # `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /
 # `videotoolbox` features can be enabled on any target; the deps just
@@ -202,7 +196,6 @@ subtitles = ["ass", "sub-image", "subtitle"]
 hwaccel = [
     "audiotoolbox", "videotoolbox",
     "vaapi", "vdpau", "nvidia", "vulkan-video",
-    "vfw",
 ]
 
 # I/O drivers — `source` is the file:// scheme handler; `http`
@@ -299,7 +292,6 @@ source = ["dep:oxideav-source"]
 # target-portable — enabling on an unsupported target is a no-op).
 audiotoolbox = ["dep:oxideav-audiotoolbox"]
 videotoolbox = ["dep:oxideav-videotoolbox"]
-vfw = ["dep:oxideav-vfw"]
 vaapi = ["dep:oxideav-vaapi"]
 vdpau = ["dep:oxideav-vdpau"]
 nvidia = ["dep:oxideav-nvidia"]

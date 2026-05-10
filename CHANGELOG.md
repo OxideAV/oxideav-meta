@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1](https://github.com/OxideAV/oxideav-meta/releases/tag/v0.0.1) - 2026-05-10
+
+### Added
+
+- add vfw bridge to hwaccel preset
+- add `pure-rust` preset (= all minus hwaccel)
+
+### Other
+
+- Wire 5 new 3D-asset siblings + populate_mesh3d_registry helper
+- Revert "features: add vfw bridge to hwaccel preset"
+- emit __oxideav_entry calls (oxideav-core register! macro shape)
+- wire four new Linux/Windows HW codec sibling crates into register_all
+- rename to oxideav-meta: drop linkme, switch to explicit register_all(ctx) + Cargo features
+- explain why ensure_linked() cannot be automated
+- build.rs auto-generates FORCE_LINK from Cargo.toml — single source of truth
+- FORCE_LINK + ensure_linked() — defeat linker DCE on production binaries ([#520](https://github.com/OxideAV/oxideav-meta/pull/520))
+- Initial commit: virtual aggregator with deps on every sibling
+
 ### Added
 
 - 3D scenes & assets sibling crates wired into the aggregator:

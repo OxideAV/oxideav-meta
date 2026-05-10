@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- 3D scenes & assets sibling crates wired into the aggregator:
+  `oxideav-mesh3d` (typed Scene3D / Mesh / Material PBR / Skin /
+  Animation / Camera / Light / AudioEmitter model + `Mesh3DRegistry`)
+  and the four format codecs `oxideav-stl`, `oxideav-obj`,
+  `oxideav-gltf`, `oxideav-usdz`. Per-crate cargo features added:
+  `mesh3d`, `stl`, `obj`, `gltf`, `usdz`. New preset bundle `3d`
+  pulls all five; `3d` is now part of `all` and `pure-rust`. The
+  format crates use a separate dispatch contract from the
+  codec/container/filter/source `register_all` path — `build.rs`
+  emits a parallel `populate_mesh3d_registry(&mut Mesh3DRegistry)`
+  helper (gated `#[cfg(feature = "mesh3d")]`) that calls each enabled
+  3D-format crate's `register(&mut Mesh3DRegistry)`.
 - Linux + cross-platform HW codec sibling crates wired into the
   aggregator: `oxideav-vaapi`, `oxideav-vdpau`, `oxideav-nvidia` (all
   `target_os = "linux"`-only) and `oxideav-vulkan-video` (`target_os

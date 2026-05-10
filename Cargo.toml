@@ -115,6 +115,18 @@ oxideav-http = { version = "0.0", optional = true }
 oxideav-image-filter = { version = "0.1", optional = true }
 oxideav-source = { version = "0.1", optional = true }
 
+# 3D scenes / mesh / asset codecs. mesh3d carries the typed Scene3D
+# model + Mesh3DRegistry; the four format crates (stl/obj/gltf/usdz)
+# implement Mesh3DDecoder/Mesh3DEncoder and register into the
+# Mesh3DRegistry. They use a SEPARATE dispatch contract from the
+# codec/container/filter/source `register_all` path — see
+# `populate_mesh3d_registry` in the generated module.
+oxideav-mesh3d = { version = "0.0", optional = true }
+oxideav-stl = { version = "0.0", optional = true }
+oxideav-obj = { version = "0.0", optional = true }
+oxideav-gltf = { version = "0.0", optional = true }
+oxideav-usdz = { version = "0.0", optional = true }
+
 # Hardware-accelerated codec crates — macOS-only (the crates are
 # `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /
 # `videotoolbox` features can be enabled on any target; the deps just
@@ -150,13 +162,13 @@ default = ["all"]
 # ---------------------------------------------------------------------
 
 # All sibling crates the framework knows about.
-all = ["audio", "video", "image", "subtitles", "hwaccel", "source-drivers"]
+all = ["audio", "video", "image", "subtitles", "3d", "hwaccel", "source-drivers"]
 
 # Every pure-Rust sibling — same as `all` minus the hardware-engine
 # bridges (audiotoolbox, videotoolbox, vaapi, vdpau, nvidia,
 # vulkan-video). Use this when you want a 100% pure-Rust build with
 # zero FFI to OS HW-engine APIs (libloading'd or otherwise).
-pure-rust = ["audio", "video", "image", "subtitles", "source-drivers"]
+pure-rust = ["audio", "video", "image", "subtitles", "3d", "source-drivers"]
 
 # Audio: codecs + audio-filter + the containers commonly carrying audio.
 audio = [
@@ -187,6 +199,13 @@ image = [
 # Subtitle codecs (preset name is plural to avoid clash with the
 # per-crate `subtitle` feature for `oxideav-subtitle`).
 subtitles = ["ass", "sub-image", "subtitle"]
+
+# 3D scenes & assets: typed model (`oxideav-mesh3d`) + per-format codec
+# crates that plug into `oxideav_mesh3d::Mesh3DRegistry`. Wire them up
+# at runtime via `oxideav_meta::populate_mesh3d_registry(&mut reg)`.
+# Preset name is `3d` so it doesn't collide with the per-crate `mesh3d`
+# feature.
+3d = ["mesh3d", "stl", "obj", "gltf", "usdz"]
 
 # Hardware-accelerated codec crates. Each per-crate feature gates a
 # sibling that's only built on the targets the crate body supports
@@ -296,3 +315,12 @@ vaapi = ["dep:oxideav-vaapi"]
 vdpau = ["dep:oxideav-vdpau"]
 nvidia = ["dep:oxideav-nvidia"]
 vulkan-video = ["dep:oxideav-vulkan-video"]
+
+# 3D scenes / mesh / asset codecs. The four format crates each pull
+# `mesh3d` so `oxideav_mesh3d::Mesh3DRegistry` is always reachable
+# whenever any 3D format is enabled.
+mesh3d = ["dep:oxideav-mesh3d"]
+stl = ["dep:oxideav-stl", "mesh3d"]
+obj = ["dep:oxideav-obj", "mesh3d"]
+gltf = ["dep:oxideav-gltf", "mesh3d"]
+usdz = ["dep:oxideav-usdz", "mesh3d"]

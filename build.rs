@@ -53,7 +53,7 @@ const SKIP: &[&str] = &[
 /// oxideav_mesh3d::Mesh3DRegistry)` (gated behind its default-on
 /// `registry` feature). `populate_mesh3d_registry` calls each enabled
 /// crate's `register` so a single helper builds a full registry.
-const MESH3D_FORMAT_CRATES: &[&str] = &["stl", "obj", "gltf", "usdz"];
+const MESH3D_FORMAT_CRATES: &[&str] = &["stl", "obj", "gltf", "usdz", "fbx"];
 
 /// Each section's parser key (the normalized `Cargo.toml` table
 /// header with whitespace stripped) paired with the `cfg(...)` body

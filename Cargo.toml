@@ -126,6 +126,7 @@ oxideav-stl = { version = "0.0", optional = true }
 oxideav-obj = { version = "0.0", optional = true }
 oxideav-gltf = { version = "0.0", optional = true }
 oxideav-usdz = { version = "0.0", optional = true }
+oxideav-fbx = { version = "0.0", optional = true }
 
 # Hardware-accelerated codec crates — macOS-only (the crates are
 # `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /
@@ -205,7 +206,7 @@ subtitles = ["ass", "sub-image", "subtitle"]
 # at runtime via `oxideav_meta::populate_mesh3d_registry(&mut reg)`.
 # Preset name is `3d` so it doesn't collide with the per-crate `mesh3d`
 # feature.
-3d = ["mesh3d", "stl", "obj", "gltf", "usdz"]
+3d = ["mesh3d", "stl", "obj", "gltf", "usdz", "fbx"]
 
 # Hardware-accelerated codec crates. Each per-crate feature gates a
 # sibling that's only built on the targets the crate body supports
@@ -324,3 +325,4 @@ stl = ["dep:oxideav-stl", "mesh3d"]
 obj = ["dep:oxideav-obj", "mesh3d"]
 gltf = ["dep:oxideav-gltf", "mesh3d"]
 usdz = ["dep:oxideav-usdz", "mesh3d"]
+fbx = ["dep:oxideav-fbx", "mesh3d"]

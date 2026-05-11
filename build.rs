@@ -47,6 +47,7 @@ const SKIP: &[&str] = &[
     "oxideav-obj",
     "oxideav-gltf",
     "oxideav-usdz",
+    "oxideav-fbx",
 ];
 
 /// 3D format-codec crates. Each exposes `pub fn register(&mut

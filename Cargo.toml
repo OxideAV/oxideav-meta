@@ -114,6 +114,7 @@ oxideav-generator = { version = "0.1", optional = true }
 oxideav-http = { version = "0.0", optional = true }
 oxideav-image-filter = { version = "0.1", optional = true }
 oxideav-source = { version = "0.1", optional = true }
+oxideav-bluray = { version = "0.0", optional = true }
 
 # 3D scenes / mesh / asset codecs. mesh3d carries the typed Scene3D
 # model + Mesh3DRegistry; the four format crates (stl/obj/gltf/usdz)
@@ -219,8 +220,9 @@ hwaccel = [
 ]
 
 # I/O drivers — `source` is the file:// scheme handler; `http`
-# adds `http(s)://`; `generator` adds `generate://` synth URIs.
-source-drivers = ["source", "http", "generator"]
+# adds `http(s)://`; `generator` adds `generate://` synth URIs;
+# `bluray` adds `bluray://` (UDF mount + BDMV walk + .m2ts stream).
+source-drivers = ["source", "http", "generator", "bluray"]
 
 # ---------------------------------------------------------------------
 # Per-crate features — enable a single sibling without dragging a
@@ -303,6 +305,7 @@ subtitle = ["dep:oxideav-subtitle"]
 
 # Filter / source.
 audio-filter = ["dep:oxideav-audio-filter"]
+bluray = ["dep:oxideav-bluray"]
 generator = ["dep:oxideav-generator"]
 http = ["dep:oxideav-http"]
 image-filter = ["dep:oxideav-image-filter"]

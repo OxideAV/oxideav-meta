@@ -1,52 +1,100 @@
-# oxideav-format-all
+# oxideav-meta
 
-Virtual aggregator crate for the [oxideav](https://github.com/OxideAV/oxideav) framework.
+Aggregator crate for the [oxideav](https://github.com/OxideAV/oxideav) framework.
 
 ## What it is
 
-`oxideav-format-all` ships **no source code**. Its sole purpose is to declare dependencies on every oxideav sibling codec / container / filter / source crate, so that linking it pulls them all into the binary.
+`oxideav-meta` ships **no codec source code**. Its job is to depend on every oxideav sibling codec / container / filter / source / 3D-format crate the framework knows about, and expose two thin helpers that fold every enabled sibling's registrar into the consumer's [`oxideav_core::RuntimeContext`].
 
-Each sibling crate has a `oxideav_core::register!("name", register)` line that deposits an entry into a global `linkme` distributed slice (`oxideav_core::REGISTRARS`). When you call `oxideav_core::RuntimeContext::with_all_features()`, it walks the slice and invokes every entry's `register` fn — installing every codec / container / filter / source the framework knows about.
+The build script (`build.rs`) parses this crate's own `Cargo.toml` plus the active `CARGO_FEATURE_*` env vars and emits a `register_all(ctx)` function whose body is one explicit `<sibling>::__oxideav_entry(ctx)` call per enabled sibling. Each call is what the sibling's `oxideav_core::register!` macro expanded to at the sibling's call site — wrapper-fn dispatch, no `linkme` distributed slice, no `#[used]` ctor / init_array tricks, no `ensure_linked()` workaround. Explicit fn calls force the linker to keep every enabled rlib alive on every target Rust supports (wasm included).
+
+A parallel helper `populate_mesh3d_registry(reg)` (gated behind the `mesh3d` cargo feature) folds every enabled 3D-format sibling into an `oxideav_mesh3d::Mesh3DRegistry` — the 3D-format crates use a separate dispatch contract from the codec/container/filter/source path.
 
 ## Use it when
 
-- You want **everything** the framework supports — bundle it into your tool / player / CLI / transcoder.
+- You want **everything** the framework supports — bundle it into your tool / player / CLI / transcoder and have every codec available without listing each sibling by hand.
 - You don't care about binary size and can afford every sibling's compile cost.
 
 ## Skip it when
 
-- You only need a specific subset (e.g. just MP4 + H.264 + AAC for a video player). Depend on the individual sibling crates directly. `RuntimeContext::with_all_features()` still works — it'll see a smaller registry.
-- You're targeting `no_std`. The slice-walker requires `std::sync::OnceLock` from `oxideav-core`.
+- You only need a specific subset (e.g. just MP4 + H.264 + AAC for a video player). Depend on the individual sibling crates directly and call each one's `register(&mut ctx)` yourself, or pick a slimmer feature set on this crate (see "Slimming the build" below).
+- You're targeting `no_std`. Both helpers take `&mut oxideav_core::RuntimeContext`, which requires `alloc`.
 
 ## Quick start
 
 ```toml
 [dependencies]
-oxideav-format-all = "*"
 oxideav-core = "0.1"
+oxideav-meta = "*"
 ```
 
-```rust
+```ignore
 use oxideav_core::RuntimeContext;
 
-let ctx = RuntimeContext::with_all_features();
-// ctx now has every codec / container / filter / source registered.
+let mut ctx = RuntimeContext::new();
+oxideav_meta::register_all(&mut ctx);
+// `ctx` now contains every codec / container / filter / source
+// enabled at build time (default-features = ["all"] pulls all of
+// them).
 ```
 
-## Runtime opt-out
+## Slimming the build
 
-Even when this crate links every sibling, you can skip specific registrars at materialisation time:
+Default features pull every sibling. Disable defaults and pick a coherent subset using preset bundles, or list individual crates:
 
-```rust
-use oxideav_core::RuntimeContext;
+```toml
+[dependencies]
+# Image codecs + image filter only.
+oxideav-meta = { version = "*", default-features = false, features = ["image"] }
 
-// Disable hardware acceleration (videotoolbox / audiotoolbox), keep everything else.
-let ctx = RuntimeContext::with_all_features_filtered(|name| {
-    !matches!(name, "videotoolbox" | "audiotoolbox")
-});
+# Just MP4 + H.264 + AAC.
+oxideav-meta = { version = "*", default-features = false, features = ["mp4", "h264", "aac"] }
 ```
 
-This is the mechanism the `oxideav-cli`'s `--no-hwaccel` flag uses.
+Preset bundles:
+
+| Preset           | Pulls                                                                                  |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `all` (default)  | Every sibling — codec, container, filter, source, 3D, hardware accel.                  |
+| `pure-rust`      | `all` minus `hwaccel` — for builds that want zero FFI to OS HW-engine APIs.            |
+| `audio`          | Every audio codec + `audio-filter` + the containers that commonly carry audio.         |
+| `video`          | Every video codec + the containers that commonly carry video.                          |
+| `image`          | Every still / animated image codec + `image-filter`.                                   |
+| `subtitles`      | `ass`, `sub-image`, `subtitle`.                                                        |
+| `3d`             | `mesh3d` (typed Scene3D model) + the `stl` / `obj` / `gltf` / `usdz` / `fbx` formats.  |
+| `hwaccel`        | macOS `audiotoolbox` / `videotoolbox` + linux `vaapi` / `vdpau` / `nvidia` + `vulkan-video` (linux + windows). |
+| `source-drivers` | `source` (file://) + `http` + `generator` (synth URIs) + `bluray`.                     |
+
+Per-crate features are named after each crate's short name (`aac`, `h264`, `mp4`, …). One name exception: `oxideav-mod` is feature `amiga-mod` to avoid the `mod` Rust keyword in feature lists.
+
+Hardware-accel features are target-portable — enabling `vaapi` on macOS, or `videotoolbox` on linux, is a no-op (the underlying sibling dep only resolves on its supported target, so the feature degrades cleanly).
+
+## 3D scenes & assets
+
+The `3d` preset enables `oxideav-mesh3d` (typed `Scene3D` / `Mesh` / `Material` / `Animation` model + `Mesh3DRegistry`) and the five format codec siblings (`oxideav-stl`, `oxideav-obj`, `oxideav-gltf`, `oxideav-usdz`, `oxideav-fbx`). They use a separate dispatch contract from the codec/container/filter/source path that [`register_all`] walks — call [`populate_mesh3d_registry`] to wire them into a registry:
+
+```ignore
+# #[cfg(feature = "mesh3d")] {
+use oxideav_mesh3d::Mesh3DRegistry;
+
+let mut reg = Mesh3DRegistry::new();
+oxideav_meta::populate_mesh3d_registry(&mut reg);
+// `reg` now resolves stl / obj / gltf / usdz / fbx by extension or
+// format-id.
+# }
+```
+
+## How the build script works
+
+The build script is a 200-line Rust program in `build.rs`:
+
+1. Reads this crate's own `Cargo.toml`.
+2. Walks the `[dependencies]` table and the recognized `[target.'cfg(...)'.dependencies]` tables (macOS / linux / linux-or-windows) and collects every `oxideav-*` dep.
+3. For each dep, checks whether its corresponding `CARGO_FEATURE_*` env var is set (cargo sets these for every enabled feature). If yes, emits a `oxideav_<short>::__oxideav_entry(ctx)` call into the generated `register_all`. When the dep was target-gated, the same `cfg(...)` body is emitted verbatim as a `#[cfg(...)]` attribute on the call so cross-target builds still produce working code.
+4. Same logic for the five 3D-format crates → calls into `populate_mesh3d_registry`.
+5. Writes the generated module to `$OUT_DIR/register_all.rs`; `src/lib.rs` pulls it in via `include!()`.
+
+Adding a new sibling = add an optional dep line + a `name = ["dep:oxideav-name"]` feature line in `Cargo.toml`. The next build regenerates `register_all` automatically.
 
 ## License
 

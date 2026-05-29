@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- README rewritten to match the current crate identity (`oxideav-meta`,
+  not `oxideav-format-all`) and the current API (`register_all(ctx)` +
+  `populate_mesh3d_registry(reg)`, not the linkme-era
+  `RuntimeContext::with_all_features()` / `with_all_features_filtered()`
+  that no longer exist on `oxideav-core`). Documents the build-script
+  flow end-to-end and the preset-bundle table.
+
+### Added
+
+- `tests/register_all_smoke.rs` — integration smoke test that
+  (a) `register_all(&mut ctx)` is callable and doesn't panic on a fresh
+  `RuntimeContext`, (b) under the default `all` feature set at least
+  one of codecs / containers / sources is populated (guards against
+  the build-script silently emitting an empty `register_all` body),
+  and (c) under `mesh3d` the parallel `populate_mesh3d_registry` is
+  also callable.
+
 ## [0.0.1](https://github.com/OxideAV/oxideav-meta/releases/tag/v0.0.1) - 2026-05-10
 
 ### Added

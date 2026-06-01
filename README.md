@@ -84,6 +84,35 @@ oxideav_meta::populate_mesh3d_registry(&mut reg);
 # }
 ```
 
+## Introspection
+
+Alongside `register_all` the build script emits two compile-time
+constants so tooling can enumerate exactly which siblings meta wired
+on the current target without having to peek inside `RuntimeContext`:
+
+```ignore
+// Every sibling whose `__oxideav_entry` is called by `register_all`
+// on the current target — feature-filtered and target-gate-filtered.
+for (crate_name, short) in oxideav_meta::ENABLED_SIBLINGS {
+    println!("meta wires {crate_name} (short = {short})");
+}
+
+// Strict superset including macOS / linux / windows HW-accel entries
+// whose target gate isn't satisfied on the current build. Useful for
+// "what would meta know about if I were on linux?" tooling.
+for (crate_name, short) in oxideav_meta::ENABLED_SIBLINGS_ALL {
+    println!("known to meta: {crate_name}");
+}
+```
+
+A parallel `ENABLED_MESH3D_FORMATS: &[&str]` (gated behind the
+`mesh3d` feature) lists the 3D-format short names dispatched by
+[`populate_mesh3d_registry`].
+
+Both slices are alphabetised by crate name (the same order
+`register_all` calls them in) and short names are guaranteed to equal
+the crate name with `oxideav-` stripped.
+
 ## How the build script works
 
 The build script is a 200-line Rust program in `build.rs`:
@@ -92,7 +121,8 @@ The build script is a 200-line Rust program in `build.rs`:
 2. Walks the `[dependencies]` table and the recognized `[target.'cfg(...)'.dependencies]` tables (macOS / linux / linux-or-windows) and collects every `oxideav-*` dep.
 3. For each dep, checks whether its corresponding `CARGO_FEATURE_*` env var is set (cargo sets these for every enabled feature). If yes, emits a `oxideav_<short>::__oxideav_entry(ctx)` call into the generated `register_all`. When the dep was target-gated, the same `cfg(...)` body is emitted verbatim as a `#[cfg(...)]` attribute on the call so cross-target builds still produce working code.
 4. Same logic for the five 3D-format crates → calls into `populate_mesh3d_registry`.
-5. Writes the generated module to `$OUT_DIR/register_all.rs`; `src/lib.rs` pulls it in via `include!()`.
+5. Emits two static-slice introspection constants — [`ENABLED_SIBLINGS`] (current-target view, with target gates evaluated against `CARGO_CFG_TARGET_OS`) and [`ENABLED_SIBLINGS_ALL`] (cross-target superset). When `mesh3d` is on, also emits `ENABLED_MESH3D_FORMATS`.
+6. Writes the generated module to `$OUT_DIR/register_all.rs`; `src/lib.rs` pulls it in via `include!()`.
 
 Adding a new sibling = add an optional dep line + a `name = ["dep:oxideav-name"]` feature line in `Cargo.toml`. The next build regenerates `register_all` automatically.
 

@@ -64,3 +64,110 @@ fn populate_mesh3d_registry_does_not_panic() {
     let mut reg = oxideav_mesh3d::Mesh3DRegistry::new();
     oxideav_meta::populate_mesh3d_registry(&mut reg);
 }
+
+#[test]
+fn enabled_siblings_has_unique_entries() {
+    // Every (crate_name, short_name) pair in the introspection slice
+    // must be unique — the build script's dep walker collects deps
+    // section-by-section, so a regression that double-emits a dep
+    // (e.g. listed under both `[dependencies]` and a target-gated
+    // section) would surface here as duplicate entries.
+    let entries: Vec<_> = oxideav_meta::ENABLED_SIBLINGS.iter().collect();
+    let mut seen_names: Vec<&str> = Vec::with_capacity(entries.len());
+    for (full, _) in &entries {
+        assert!(
+            !seen_names.contains(full),
+            "duplicate crate_name in ENABLED_SIBLINGS: {full}",
+        );
+        seen_names.push(full);
+    }
+}
+
+#[test]
+fn enabled_siblings_is_sorted_alphabetically() {
+    // `collect_sibling_deps` in build.rs sorts deps before emitting
+    // any code, so both the `register_all` body and `ENABLED_SIBLINGS`
+    // are alphabetical by crate name. Lock that contract in: tools
+    // can rely on a deterministic order without re-sorting.
+    let names: Vec<&str> = oxideav_meta::ENABLED_SIBLINGS
+        .iter()
+        .map(|(full, _)| *full)
+        .collect();
+    let mut sorted = names.clone();
+    sorted.sort();
+    assert_eq!(
+        names, sorted,
+        "ENABLED_SIBLINGS should be sorted alphabetically by crate name",
+    );
+}
+
+#[test]
+fn enabled_siblings_short_names_match_crate_names() {
+    // Short name = crate name with the `oxideav-` prefix stripped.
+    // (Feature names are a separate naming axis — see
+    // `feature_name_for` in build.rs for the one historical override.)
+    for (full, short) in oxideav_meta::ENABLED_SIBLINGS {
+        let expected_short = full.strip_prefix("oxideav-").unwrap_or(full);
+        assert_eq!(
+            *short, expected_short,
+            "short name mismatch: {full} -> {short} (expected {expected_short})",
+        );
+    }
+}
+
+#[test]
+fn enabled_siblings_all_is_superset_of_enabled_siblings() {
+    // `ENABLED_SIBLINGS_ALL` includes target-gated entries (macOS /
+    // linux / windows HW-accel crates) whose gate didn't match the
+    // current target; `ENABLED_SIBLINGS` is the gate-satisfied subset.
+    for entry in oxideav_meta::ENABLED_SIBLINGS {
+        assert!(
+            oxideav_meta::ENABLED_SIBLINGS_ALL.contains(entry),
+            "ENABLED_SIBLINGS entry {entry:?} missing from ENABLED_SIBLINGS_ALL",
+        );
+    }
+    assert!(
+        oxideav_meta::ENABLED_SIBLINGS_ALL.len() >= oxideav_meta::ENABLED_SIBLINGS.len(),
+        "ENABLED_SIBLINGS_ALL must be a superset",
+    );
+}
+
+#[test]
+fn enabled_siblings_population_matches_register_all() {
+    // Sanity check: under the default `all` feature set, `register_all`
+    // populates at least one sub-registry AND `ENABLED_SIBLINGS` is
+    // non-empty. The two assertions together guarantee that the
+    // generated module's `register_all` body and `ENABLED_SIBLINGS`
+    // slice came from the same source-of-truth dep walk.
+    let mut ctx = RuntimeContext::new();
+    oxideav_meta::register_all(&mut ctx);
+
+    let any_codec =
+        ctx.codecs.decoder_ids().next().is_some() || ctx.codecs.encoder_ids().next().is_some();
+    let any_container = ctx.containers.demuxer_names().next().is_some()
+        || ctx.containers.muxer_names().next().is_some();
+    let any_source = ctx.sources.schemes().next().is_some();
+
+    if any_codec || any_container || any_source {
+        assert!(
+            !oxideav_meta::ENABLED_SIBLINGS.is_empty(),
+            "register_all populated sub-registries but ENABLED_SIBLINGS is empty — generated module is inconsistent",
+        );
+    }
+}
+
+#[cfg(feature = "mesh3d")]
+#[test]
+fn enabled_mesh3d_formats_subset_of_known_formats() {
+    // The 3D-format crate set is hard-coded in build.rs's
+    // `MESH3D_FORMAT_CRATES` table. Every entry in
+    // `ENABLED_MESH3D_FORMATS` must come from that table; this guards
+    // against an accidental free-form addition.
+    const KNOWN: &[&str] = &["stl", "obj", "gltf", "usdz", "fbx"];
+    for short in oxideav_meta::ENABLED_MESH3D_FORMATS {
+        assert!(
+            KNOWN.contains(short),
+            "unknown 3D format in ENABLED_MESH3D_FORMATS: {short}",
+        );
+    }
+}

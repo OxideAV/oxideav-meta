@@ -92,6 +92,31 @@ fn env_var_for_feature(feat: &str) -> String {
     format!("CARGO_FEATURE_{}", feat.replace('-', "_").to_uppercase())
 }
 
+/// Evaluate a `SECTIONS` gate body (e.g. `target_os = "macos"` or
+/// `any(target_os = "linux", target_os = "windows")`) against the
+/// current build's target OS.
+///
+/// Only the gate shapes used by `SECTIONS` are recognised — anything
+/// else returns `false` to err on the safe side (the gated entry stays
+/// out of [`ENABLED_SIBLINGS`]). The corresponding `#[cfg(...)]` on the
+/// `register_all` call is the authoritative check at compile time; the
+/// build-script evaluator only feeds the introspection slice.
+fn gate_matches_target(gate: &str, target_os: &str) -> bool {
+    let g: String = gate.chars().filter(|c| !c.is_whitespace()).collect();
+    if let Some(rest) = g.strip_prefix("target_os=\"") {
+        if let Some(os) = rest.strip_suffix('"') {
+            return os == target_os;
+        }
+    }
+    if let Some(inner) = g.strip_prefix("any(").and_then(|s| s.strip_suffix(')')) {
+        // any(target_os="linux",target_os="windows")
+        return inner
+            .split(',')
+            .any(|term| gate_matches_target(term, target_os));
+    }
+    false
+}
+
 fn main() {
     println!("cargo:rerun-if-changed=Cargo.toml");
 
@@ -118,6 +143,16 @@ fn main() {
     // enabled (e.g. `--features 3d` builds where every dep is in SKIP).
     out.push_str("    let _ = ctx;\n");
 
+    // Evaluate target gates against the current cargo target so the
+    // ENABLED_SIBLINGS slice below can omit entries whose target gate
+    // doesn't match. Build.rs runs per-target, so `CARGO_CFG_TARGET_OS`
+    // names the OS the compiled artefact will run on.
+    let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+
+    // Collect (crate_name, short_name, gate) for every sibling whose
+    // feature is enabled — used both for the register_all body and the
+    // ENABLED_SIBLINGS_ALL static slice below.
+    let mut enabled: Vec<(String, String, Option<String>)> = Vec::new();
     for (full_name, gate) in &deps {
         let short = full_name.strip_prefix("oxideav-").unwrap_or(full_name);
         let feature = feature_name_for(short);
@@ -130,9 +165,61 @@ fn main() {
             out.push_str(&format!("    #[cfg({g})]\n"));
         }
         out.push_str(&format!("    {krate}::__oxideav_entry(ctx);\n"));
+        enabled.push((full_name.clone(), short.to_string(), gate.clone()));
     }
 
     out.push_str("}\n");
+
+    // Static-slice introspection: a `(crate_name, short_name)` entry
+    // for every sibling whose `__oxideav_entry` is called by
+    // `register_all` on the *current target*. Useful for diagnostics
+    // ("did meta wire codec X at build time?"), CLI listings, and
+    // integration tests.
+    //
+    // Build.rs evaluates each entry's target gate against
+    // `CARGO_CFG_TARGET_OS`: gated entries (macOS / linux / windows
+    // HW-accel crates) appear in the slice only on a matching target.
+    // `ENABLED_SIBLINGS_ALL` below is a target-independent superset.
+    out.push('\n');
+    out.push_str("/// Crate-name + short-name pairs for every sibling whose\n");
+    out.push_str("/// `__oxideav_entry` is dispatched by [`register_all`] on the current\n");
+    out.push_str("/// build target. Compile-time constant; entries are filtered by the\n");
+    out.push_str("/// active feature flags and the target's OS gate (HW-accel crates).\n");
+    out.push_str("///\n");
+    out.push_str("/// Example:\n");
+    out.push_str("///\n");
+    out.push_str("/// ```ignore\n");
+    out.push_str("/// for (crate_name, short) in oxideav_meta::ENABLED_SIBLINGS {\n");
+    out.push_str(
+        "///     println!(\"meta wires {crate_name} (short = {short}) into register_all\");\n",
+    );
+    out.push_str("/// }\n");
+    out.push_str("/// ```\n");
+    out.push_str("pub const ENABLED_SIBLINGS: &[(&str, &str)] = &[\n");
+    for (full_name, short, gate) in &enabled {
+        if let Some(g) = gate {
+            if !gate_matches_target(g, &target_os) {
+                continue;
+            }
+        }
+        out.push_str(&format!("    (\"{full_name}\", \"{short}\"),\n"));
+    }
+    out.push_str("];\n");
+
+    // Cross-target companion: every sibling that would be wired if its
+    // target gate were satisfied. Strict superset of `ENABLED_SIBLINGS`.
+    // Useful for tooling that wants to enumerate "every backend meta
+    // knows about" regardless of the current build target.
+    out.push('\n');
+    out.push_str("/// Like [`ENABLED_SIBLINGS`] but also includes target-gated entries\n");
+    out.push_str("/// (macOS / linux / windows HW-accel crates) whose `#[cfg(...)]` gate\n");
+    out.push_str("/// does not let them link on the current target. Strict superset of\n");
+    out.push_str("/// [`ENABLED_SIBLINGS`]. Order: alphabetical by crate name.\n");
+    out.push_str("pub const ENABLED_SIBLINGS_ALL: &[(&str, &str)] = &[\n");
+    for (full_name, short, _gate) in &enabled {
+        out.push_str(&format!("    (\"{full_name}\", \"{short}\"),\n"));
+    }
+    out.push_str("];\n");
 
     // Second generated function: `populate_mesh3d_registry`. Lives
     // behind `#[cfg(feature = "mesh3d")]` so `oxideav_mesh3d` is in
@@ -153,6 +240,7 @@ fn main() {
     // Silence `unused_variables` when only `mesh3d` is on (no format
     // codecs enabled) — registry stays empty but compiles cleanly.
     out.push_str("    let _ = registry;\n");
+    let mut enabled_mesh: Vec<&'static str> = Vec::new();
     for short in MESH3D_FORMAT_CRATES {
         let env_var = env_var_for_feature(short);
         if env::var_os(&env_var).is_none() {
@@ -160,8 +248,22 @@ fn main() {
         }
         let krate = format!("oxideav_{}", short.replace('-', "_"));
         out.push_str(&format!("    {krate}::register(registry);\n"));
+        enabled_mesh.push(short);
     }
     out.push_str("}\n");
+
+    // Static-slice introspection counterpart for 3D-format crates.
+    // Gated on `#[cfg(feature = "mesh3d")]` (matching the helper fn).
+    out.push('\n');
+    out.push_str("/// Short names of every 3D-format sibling whose `register` is called by\n");
+    out.push_str("/// [`populate_mesh3d_registry`]. Only present when the `mesh3d`\n");
+    out.push_str("/// feature is enabled.\n");
+    out.push_str("#[cfg(feature = \"mesh3d\")]\n");
+    out.push_str("pub const ENABLED_MESH3D_FORMATS: &[&str] = &[\n");
+    for short in &enabled_mesh {
+        out.push_str(&format!("    \"{short}\",\n"));
+    }
+    out.push_str("];\n");
 
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR set by cargo"));
     let dest = out_dir.join("register_all.rs");

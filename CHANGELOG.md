@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Build-script introspection constants: `ENABLED_SIBLINGS: &[(&str,
+  &str)]` (alphabetised `(crate_name, short_name)` pairs for every
+  sibling whose `__oxideav_entry` is dispatched by `register_all` on
+  the current target) and `ENABLED_SIBLINGS_ALL` (cross-target
+  superset that retains target-gated entries whose `#[cfg(...)]`
+  doesn't match the current build). Plus a feature-gated
+  `ENABLED_MESH3D_FORMATS: &[&str]` (under `cfg(feature = "mesh3d")`)
+  with the 3D-format short names dispatched by
+  `populate_mesh3d_registry`. Useful for diagnostics, CLI listings,
+  and integration tests that need to know which sibling crates a
+  given meta build wired in without inspecting `RuntimeContext`.
+- `gate_matches_target` helper in `build.rs` that evaluates the
+  three recognised `SECTIONS` gate shapes (`target_os = "macos"`,
+  `target_os = "linux"`, `any(target_os = "linux", target_os =
+  "windows")`) against `CARGO_CFG_TARGET_OS` so `ENABLED_SIBLINGS`
+  reflects exactly the calls `register_all` makes on the current
+  target — no manual cfg duplication on the consumer side.
+- Six new assertions in `tests/register_all_smoke.rs` covering: no
+  duplicate entries in `ENABLED_SIBLINGS`, alphabetical sort order,
+  `short == crate_name.strip_prefix("oxideav-")`, `ENABLED_SIBLINGS`
+  ⊆ `ENABLED_SIBLINGS_ALL`, `register_all` populating
+  sub-registries implies `ENABLED_SIBLINGS` is non-empty (cross-check
+  the generated module is internally consistent), and
+  `ENABLED_MESH3D_FORMATS` ⊆ the hard-coded 3D-format table.
+
 ### Changed
 
 - README rewritten to match the current crate identity (`oxideav-meta`,
@@ -15,8 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `RuntimeContext::with_all_features()` / `with_all_features_filtered()`
   that no longer exist on `oxideav-core`). Documents the build-script
   flow end-to-end and the preset-bundle table.
+- README adds an "Introspection" section that documents the new
+  `ENABLED_SIBLINGS` / `ENABLED_SIBLINGS_ALL` / `ENABLED_MESH3D_FORMATS`
+  constants with usage examples, and the build-script flow numbered
+  list grows a step covering the static-slice emission.
 
-### Added
+### Added (earlier in [Unreleased])
 
 - `tests/register_all_smoke.rs` — integration smoke test that
   (a) `register_all(&mut ctx)` is callable and doesn't panic on a fresh

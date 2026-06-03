@@ -52,12 +52,14 @@ oxideav-mp1 = { version = "0.0", optional = true }
 oxideav-mp2 = { version = "0.0", optional = true }
 oxideav-mp3 = { version = "0.1", optional = true }
 oxideav-opus = { version = "0.0", optional = true }
+oxideav-shorten = { version = "0.0", optional = true }
 oxideav-speex = { version = "0.0", optional = true }
 oxideav-vorbis = { version = "0.0", optional = true }
 
 # Video codecs.
 oxideav-amv = { version = "0.0", optional = true }
 oxideav-av1 = { version = "0.1", optional = true }
+oxideav-cinepak = { version = "0.0", optional = true }
 oxideav-dirac = { version = "0.0", optional = true }
 oxideav-ffv1 = { version = "0.0", optional = true }
 oxideav-h261 = { version = "0.0", optional = true }
@@ -65,12 +67,15 @@ oxideav-h263 = { version = "0.0", optional = true }
 oxideav-h264 = { version = "0.1", optional = true }
 oxideav-h265 = { version = "0.0", optional = true }
 oxideav-h266 = { version = "0.0", optional = true }
+oxideav-huffyuv = { version = "0.0", optional = true }
+oxideav-magicyuv = { version = "0.0", optional = true }
 oxideav-mjpeg = { version = "0.1", optional = true }
 oxideav-mpeg12video = { version = "0.0", optional = true }
 oxideav-mpeg4video = { version = "0.1", optional = true }
 oxideav-msmpeg4 = { version = "0.0", optional = true }
 oxideav-prores = { version = "0.0", optional = true }
 oxideav-theora = { version = "0.0", optional = true }
+oxideav-utvideo = { version = "0.0", optional = true }
 oxideav-vp6 = { version = "0.0", optional = true }
 oxideav-vp8 = { version = "0.2", optional = true }
 oxideav-vp9 = { version = "0.0", optional = true }
@@ -115,7 +120,18 @@ oxideav-http = { version = "0.0", optional = true }
 oxideav-image-filter = { version = "0.1", optional = true }
 oxideav-source = { version = "0.1", optional = true }
 oxideav-bluray = { version = "0.0", optional = true }
+oxideav-dvd = { version = "0.0", optional = true }
 oxideav-mpegts = { version = "0.0", optional = true }
+
+# Windows-codec delegation bridge. `oxideav-vfw` ships a `register`
+# that, when invoked, walks the discovery path for `*.dll` / `*.ax`
+# files and registers one `CodecInfo` per recognised FourCC into
+# `ctx.codecs`. Pure-Rust at the host-CPU layer (the 32-bit x86
+# emulator + PE loader run the Windows codec in-process). Not OS-gated
+# — runs on any target Rust supports. Exposed as the standalone
+# `vfw` feature; intentionally NOT part of any preset bundle so the
+# filesystem scan stays opt-in.
+oxideav-vfw = { version = "0.1", optional = true }
 
 # 3D scenes / mesh / asset codecs. mesh3d carries the typed Scene3D
 # model + Mesh3DRegistry; the four format crates (stl/obj/gltf/usdz)
@@ -177,17 +193,18 @@ pure-rust = ["audio", "video", "image", "subtitles", "3d", "source-drivers"]
 audio = [
     "aac", "ac3", "ac4", "adpcm", "celt", "flac",
     "g711", "g722", "g7231", "g728", "g729", "gsm", "ilbc",
-    "mp1", "mp2", "mp3", "opus", "speex", "vorbis",
+    "mp1", "mp2", "mp3", "opus", "shorten", "speex", "vorbis",
     "audio-filter",
     "mkv", "mp4", "ogg", "iff", "amiga-mod", "s3m", "basic",
 ]
 
 # Video: codecs + the containers commonly carrying video.
 video = [
-    "amv", "av1", "dirac", "ffv1",
+    "amv", "av1", "cinepak", "dirac", "ffv1",
     "h261", "h263", "h264", "h265", "h266",
+    "huffyuv", "magicyuv",
     "mjpeg", "mpeg12video", "mpeg4video", "msmpeg4",
-    "prores", "theora", "vp6", "vp8", "vp9",
+    "prores", "theora", "utvideo", "vp6", "vp8", "vp9",
     "mkv", "mp4", "avi", "flv", "mpegts",
 ]
 
@@ -222,8 +239,9 @@ hwaccel = [
 
 # I/O drivers — `source` is the file:// scheme handler; `http`
 # adds `http(s)://`; `generator` adds `generate://` synth URIs;
-# `bluray` adds `bluray://` (UDF mount + BDMV walk + .m2ts stream).
-source-drivers = ["source", "http", "generator", "bluray"]
+# `bluray` adds `bluray://` (UDF mount + BDMV walk + .m2ts stream);
+# `dvd` adds `dvd://` (ISO 9660 + UDF 1.02 mount + VIDEO_TS walk).
+source-drivers = ["source", "http", "generator", "bluray", "dvd"]
 
 # ---------------------------------------------------------------------
 # Per-crate features — enable a single sibling without dragging a
@@ -248,12 +266,14 @@ mp1 = ["dep:oxideav-mp1"]
 mp2 = ["dep:oxideav-mp2"]
 mp3 = ["dep:oxideav-mp3"]
 opus = ["dep:oxideav-opus"]
+shorten = ["dep:oxideav-shorten"]
 speex = ["dep:oxideav-speex"]
 vorbis = ["dep:oxideav-vorbis"]
 
 # Video codecs.
 amv = ["dep:oxideav-amv"]
 av1 = ["dep:oxideav-av1"]
+cinepak = ["dep:oxideav-cinepak"]
 dirac = ["dep:oxideav-dirac"]
 ffv1 = ["dep:oxideav-ffv1"]
 h261 = ["dep:oxideav-h261"]
@@ -261,12 +281,15 @@ h263 = ["dep:oxideav-h263"]
 h264 = ["dep:oxideav-h264"]
 h265 = ["dep:oxideav-h265"]
 h266 = ["dep:oxideav-h266"]
+huffyuv = ["dep:oxideav-huffyuv"]
+magicyuv = ["dep:oxideav-magicyuv"]
 mjpeg = ["dep:oxideav-mjpeg"]
 mpeg12video = ["dep:oxideav-mpeg12video"]
 mpeg4video = ["dep:oxideav-mpeg4video"]
 msmpeg4 = ["dep:oxideav-msmpeg4"]
 prores = ["dep:oxideav-prores"]
 theora = ["dep:oxideav-theora"]
+utvideo = ["dep:oxideav-utvideo"]
 vp6 = ["dep:oxideav-vp6"]
 vp8 = ["dep:oxideav-vp8"]
 vp9 = ["dep:oxideav-vp9"]
@@ -312,10 +335,23 @@ bluray = ["dep:oxideav-bluray", "mpegts"]
 # `bluray://` chapter-segment bytes can demux through the registry
 # instead of needing a direct CLI-level dep.
 mpegts = ["dep:oxideav-mpegts"]
+# `dvd` adds the `dvd://` source driver (ISO 9660 + UDF 1.02 mount +
+# VIDEO_TS walk). Folded into the `source-drivers` preset alongside
+# `bluray` so consumers asking for the broader I/O surface get both.
+dvd = ["dep:oxideav-dvd"]
 generator = ["dep:oxideav-generator"]
 http = ["dep:oxideav-http"]
 image-filter = ["dep:oxideav-image-filter"]
 source = ["dep:oxideav-source"]
+
+# Windows-codec delegation bridge — opt-in. The sibling's `register`
+# walks the discovery path (`OXIDEAV_VFW_CODEC_PATH` or
+# `~/.local/share/oxideav/codecs/`) and probes each `*.dll` / `*.ax`,
+# registering one `CodecInfo` per recognised FourCC into
+# `ctx.codecs`. Intentionally NOT in any preset bundle so the
+# filesystem scan + cache lookup at registration time stays explicit;
+# enable with `features = ["vfw"]` when you want the bridge.
+vfw = ["dep:oxideav-vfw"]
 
 # Hardware accel (per-crate body has its own target gate; feature is
 # target-portable — enabling on an unsupported target is a no-op).

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Seven new sibling crates wired into `register_all`:
+  - **Video**: `oxideav-cinepak` (Cinepak / CVID), `oxideav-huffyuv`
+    (HuffYUV + FFVHuff), `oxideav-magicyuv` (MagicYUV),
+    `oxideav-utvideo` (Ut Video) — all folded into the `video` preset
+    bundle alongside the existing lossless / legacy video codecs.
+  - **Audio**: `oxideav-shorten` (Shorten / .shn) — folded into the
+    `audio` preset bundle.
+  - **Source driver**: `oxideav-dvd` (`dvd://` URI handler — ISO 9660 +
+    UDF 1.02 mount + VIDEO_TS walk) — folded into the `source-drivers`
+    preset bundle alongside `bluray`.
+  - **Delegation bridge**: `oxideav-vfw` (Windows-codec sandbox via
+    `ud-emulator` 32-bit x86 + PE32 loader + Video for Windows host).
+    Exposed as a standalone `vfw` feature; intentionally NOT part of
+    any preset bundle so the discovery-path filesystem scan +
+    `*.dll` / `*.ax` probing stays an explicit opt-in.
+- Per-crate features for each: `cinepak`, `huffyuv`, `magicyuv`,
+  `utvideo`, `shorten`, `dvd`, `vfw`. Each follows the existing
+  `name = ["dep:oxideav-name"]` shape that `build.rs` consumes when
+  emitting the call list.
 - Build-script introspection constants: `ENABLED_SIBLINGS: &[(&str,
   &str)]` (alphabetised `(crate_name, short_name)` pairs for every
   sibling whose `__oxideav_entry` is dispatched by `register_all` on

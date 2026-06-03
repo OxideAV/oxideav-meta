@@ -63,11 +63,13 @@ Preset bundles:
 | `subtitles`      | `ass`, `sub-image`, `subtitle`.                                                        |
 | `3d`             | `mesh3d` (typed Scene3D model) + the `stl` / `obj` / `gltf` / `usdz` / `fbx` formats.  |
 | `hwaccel`        | macOS `audiotoolbox` / `videotoolbox` + linux `vaapi` / `vdpau` / `nvidia` + `vulkan-video` (linux + windows). |
-| `source-drivers` | `source` (file://) + `http` + `generator` (synth URIs) + `bluray`.                     |
+| `source-drivers` | `source` (file://) + `http` + `generator` (synth URIs) + `bluray` + `dvd`.             |
 
 Per-crate features are named after each crate's short name (`aac`, `h264`, `mp4`, …). One name exception: `oxideav-mod` is feature `amiga-mod` to avoid the `mod` Rust keyword in feature lists.
 
 Hardware-accel features are target-portable — enabling `vaapi` on macOS, or `videotoolbox` on linux, is a no-op (the underlying sibling dep only resolves on its supported target, so the feature degrades cleanly).
+
+The standalone `vfw` feature (Windows-codec delegation bridge) is intentionally *not* part of any preset bundle. Enabling it makes `register_all` walk the discovery path (`OXIDEAV_VFW_CODEC_PATH` or `~/.local/share/oxideav/codecs/`) at registration time and probe each `*.dll` / `*.ax` it finds; that filesystem scan + cache lookup should be an explicit opt-in, not a side-effect of pulling `all`. Use `features = ["all", "vfw"]` (or `["pure-rust", "vfw"]`) when you want the bridge wired in.
 
 ## 3D scenes & assets
 

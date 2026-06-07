@@ -65,6 +65,23 @@ fn populate_mesh3d_registry_does_not_panic() {
     oxideav_meta::populate_mesh3d_registry(&mut reg);
 }
 
+#[cfg(feature = "render")]
+#[test]
+fn populate_render_registry_exposes_scanline() {
+    // Parallel to `populate_mesh3d_registry_does_not_panic`, but with a
+    // concrete expectation: `oxideav_render::register_into` registers
+    // `"scanline"` today, so a freshly-populated registry must surface
+    // that name. Future render backends (raycaster, path-tracer) will
+    // add more entries here without invalidating this assertion.
+    let mut reg = oxideav_render::RenderRegistry::new();
+    oxideav_meta::populate_render_registry(&mut reg);
+    let names = reg.names();
+    assert!(
+        names.contains(&"scanline"),
+        "populate_render_registry must register \"scanline\", got {names:?}",
+    );
+}
+
 #[test]
 fn enabled_siblings_has_unique_entries() {
     // Every (crate_name, short_name) pair in the introspection slice

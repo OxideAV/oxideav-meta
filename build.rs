@@ -265,6 +265,29 @@ fn main() {
     }
     out.push_str("];\n");
 
+    // Third generated function: `populate_render_registry`. Parallel to
+    // `populate_mesh3d_registry` but for the `oxideav_render::RenderRegistry`
+    // dispatch contract. Today populates `"scanline"` via
+    // `oxideav_render::register_into`; future render-backend siblings
+    // (raycaster, path-tracer) will be added here. Gated on
+    // `#[cfg(feature = "render")]` so slim builds without 3D in the dep
+    // tree compile cleanly.
+    out.push('\n');
+    out.push_str("/// Populate a [`oxideav_render::RenderRegistry`] with every render\n");
+    out.push_str("/// backend the active feature set exposes.\n");
+    out.push_str("///\n");
+    out.push_str("/// Today that's just `oxideav_render::register_into`, which registers\n");
+    out.push_str("/// `\"scanline\"`; future render-backend siblings (raycaster,\n");
+    out.push_str("/// path-tracer) will be wired in here. Parallel to [`register_all`]\n");
+    out.push_str("/// and [`populate_mesh3d_registry`] but for the separate\n");
+    out.push_str("/// `RenderRegistry` dispatch contract. Only available when the\n");
+    out.push_str("/// `render` cargo feature is enabled (i.e. when `oxideav-render` is\n");
+    out.push_str("/// in the dep tree; the `3d` preset bundle pulls it in).\n");
+    out.push_str("#[cfg(feature = \"render\")]\n");
+    out.push_str("pub fn populate_render_registry(reg: &mut oxideav_render::RenderRegistry) {\n");
+    out.push_str("    oxideav_render::register_into(reg);\n");
+    out.push_str("}\n");
+
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR set by cargo"));
     let dest = out_dir.join("register_all.rs");
     fs::write(&dest, out).expect("write register_all.rs");

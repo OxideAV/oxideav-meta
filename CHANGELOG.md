@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `populate_render_registry(&mut oxideav_render::RenderRegistry)` —
+  parallel to `populate_mesh3d_registry`. Gated on the `render`
+  feature (already enabled via the `3d` preset bundle). Today
+  populates `"scanline"`; future render backends (raycaster,
+  path-tracer) will be registered here.
 - Seven new sibling crates wired into `register_all`:
   - **Video**: `oxideav-cinepak` (Cinepak / CVID), `oxideav-huffyuv`
     (HuffYUV + FFVHuff), `oxideav-magicyuv` (MagicYUV),

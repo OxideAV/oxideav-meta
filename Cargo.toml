@@ -146,6 +146,12 @@ oxideav-gltf = { version = "0.0", optional = true }
 oxideav-usdz = { version = "0.0", optional = true }
 oxideav-fbx = { version = "0.0", optional = true }
 
+# 3D rasteriser / raycaster scaffold — consumes `Scene3D` from
+# `oxideav-mesh3d` and emits packed RGBA8. Phase A ships the trait
+# + factory contract only; later phases land the scanline backend
+# (B) and pipeline source-node integration (C).
+oxideav-render = { version = "0.0", optional = true }
+
 # Hardware-accelerated codec crates — macOS-only (the crates are
 # `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /
 # `videotoolbox` features can be enabled on any target; the deps just
@@ -221,11 +227,11 @@ image = [
 subtitles = ["ass", "sub-image", "subtitle"]
 
 # 3D scenes & assets: typed model (`oxideav-mesh3d`) + per-format codec
-# crates that plug into `oxideav_mesh3d::Mesh3DRegistry`. Wire them up
-# at runtime via `oxideav_meta::populate_mesh3d_registry(&mut reg)`.
-# Preset name is `3d` so it doesn't collide with the per-crate `mesh3d`
-# feature.
-3d = ["mesh3d", "stl", "obj", "gltf", "usdz", "fbx"]
+# crates that plug into `oxideav_mesh3d::Mesh3DRegistry` + the renderer
+# that consumes `Scene3D`. Wire them up at runtime via
+# `oxideav_meta::populate_mesh3d_registry(&mut reg)`. Preset name is `3d`
+# so it doesn't collide with the per-crate `mesh3d` feature.
+3d = ["mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "render"]
 
 # Hardware-accelerated codec crates. Each per-crate feature gates a
 # sibling that's only built on the targets the crate body supports
@@ -371,3 +377,7 @@ obj = ["dep:oxideav-obj", "mesh3d"]
 gltf = ["dep:oxideav-gltf", "mesh3d"]
 usdz = ["dep:oxideav-usdz", "mesh3d"]
 fbx = ["dep:oxideav-fbx", "mesh3d"]
+
+# 3D renderer (Scene3D → packed RGBA8). Pulls `mesh3d` because the
+# render trait takes `&Scene3D` as input.
+render = ["dep:oxideav-render", "mesh3d"]

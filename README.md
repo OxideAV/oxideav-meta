@@ -115,6 +115,45 @@ Both slices are alphabetised by crate name (the same order
 `register_all` calls them in) and short names are guaranteed to equal
 the crate name with `oxideav-` stripped.
 
+### Categorisation surface
+
+`ENABLED_SIBLINGS_BY_CATEGORY: &[(&str, &[&str])]` groups every entry
+in `ENABLED_SIBLINGS` under a stable category label so CLIs and
+diagnostics can render an organised listing without a second pass.
+The category set is fixed across builds and emitted in this order:
+`audio-codec`, `video-codec`, `image-codec`, `audio-filter`,
+`image-filter`, `container`, `subtitle`, `source`, `hwaccel`,
+`delegation`, `render`. Empty categories are omitted, so a slim
+feature set (e.g. `--features image`) yields a compact slice rather
+than a sea of empty sections.
+
+```ignore
+for (category, shorts) in oxideav_meta::ENABLED_SIBLINGS_BY_CATEGORY {
+    println!("{category}: {}", shorts.join(", "));
+}
+```
+
+A companion `const fn category_of(short: &str) -> Option<&'static str>`
+returns the same label for an individual short name (or `None` for
+short names that `register_all` never dispatches — the 3D-format
+crates route through `populate_mesh3d_registry`, so `category_of`
+returns `None` for `mesh3d` / `stl` / `obj` / `gltf` / `usdz` /
+`fbx`):
+
+```ignore
+assert_eq!(oxideav_meta::category_of("aac"), Some("audio-codec"));
+assert_eq!(oxideav_meta::category_of("mp4"), Some("container"));
+assert_eq!(oxideav_meta::category_of("mesh3d"), None);
+```
+
+Because `category_of` is `const fn`, callers can fold it into `const`
+lookups and `static` initialisers. Both the slice and `category_of`
+are emitted from the same `CATEGORY_TABLE` in `build.rs`, so they
+stay structurally identical across releases; the integration suite
+locks every direction of drift (sort order within a section, sections
+are pairwise disjoint, every enabled sibling has exactly one entry,
+round-trip parity between the slice and `category_of`).
+
 ## How the build script works
 
 The build script is a 200-line Rust program in `build.rs`:

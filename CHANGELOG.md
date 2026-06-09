@@ -9,6 +9,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Categorisation surface for `ENABLED_SIBLINGS`:
+  - `ENABLED_SIBLINGS_BY_CATEGORY: &[(&str, &[&str])]` — every entry
+    in `ENABLED_SIBLINGS` grouped under a stable category label
+    (`audio-codec` / `video-codec` / `image-codec` / `audio-filter` /
+    `image-filter` / `container` / `subtitle` / `source` / `hwaccel` /
+    `delegation` / `render`). Category order is fixed across builds;
+    empty categories are omitted, so a slim feature set yields a
+    compact slice. Within a section, short names inherit the
+    alphabetical sort already imposed on `ENABLED_SIBLINGS`.
+  - `const fn category_of(short: &str) -> Option<&'static str>` —
+    feature-state-independent lookup from short name to category
+    label. Returns `None` for the 3D-format crates in `build.rs`'s
+    `SKIP` list (`mesh3d`, `stl`, `obj`, `gltf`, `usdz`, `fbx` — they
+    route through `populate_mesh3d_registry` instead) and any unknown
+    string. `const fn` so callers can fold it into `const` lookups
+    and `static` initialisers.
+  - Source-of-truth `CATEGORY_TABLE` in `build.rs` plus a
+    `category_of_known_short` helper that panics at build time if any
+    enabled sibling lacks a category row — adding a new dep to
+    `Cargo.toml` without updating the table fails loud instead of
+    silently disappearing from the slice.
+- Six new assertions in `tests/register_all_smoke.rs` covering the
+  categorisation surface: section order matches the documented stable
+  order, each section is sorted internally, the flat union across
+  sections equals `ENABLED_SIBLINGS`, sections are pairwise disjoint,
+  `category_of(short)` round-trips with the slice, `category_of`
+  returns `None` for the SKIP-list crates and arbitrary unknowns, and
+  `category_of` is usable in `const` context.
 - `populate_render_registry(&mut oxideav_render::RenderRegistry)` —
   parallel to `populate_mesh3d_registry`. Gated on the `render`
   feature (already enabled via the `3d` preset bundle). Today

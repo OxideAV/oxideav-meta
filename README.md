@@ -1,5 +1,7 @@
 # oxideav-meta
 
+[![CI](https://github.com/OxideAV/oxideav-meta/actions/workflows/ci.yml/badge.svg)](https://github.com/OxideAV/oxideav-meta/actions/workflows/ci.yml) [![crates.io](https://img.shields.io/crates/v/oxideav-meta.svg)](https://crates.io/crates/oxideav-meta) [![docs.rs](https://docs.rs/oxideav-meta/badge.svg)](https://docs.rs/oxideav-meta) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Aggregator crate for the [oxideav](https://github.com/OxideAV/oxideav) framework.
 
 ## What it is

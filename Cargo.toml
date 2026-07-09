@@ -90,7 +90,7 @@ oxideav-jpegxl = { version = "0.0", optional = true }
 oxideav-jpegxs = { version = "0.0", optional = true }
 oxideav-openexr = { version = "0.0", optional = true }
 oxideav-pbm = { version = "0.0", optional = true }
-oxideav-pdf = { version = "0.1", optional = true }
+oxideav-pdf = { version = "0.2", optional = true }
 oxideav-pict = { version = "0.0", optional = true }
 oxideav-png = { version = "0.1", optional = true }
 oxideav-qoi = { version = "0.1", optional = true }

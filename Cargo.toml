@@ -83,7 +83,9 @@ oxideav-vp9 = { version = "0.0", optional = true }
 # Image codecs.
 oxideav-avif = { version = "0.0", optional = true }
 oxideav-dds = { version = "0.0", optional = true }
+oxideav-farbfeld = { version = "0.0", optional = true }
 oxideav-gif = { version = "0.0", optional = true }
+oxideav-hdr = { version = "0.0", optional = true }
 oxideav-icer = { version = "0.0", optional = true }
 oxideav-jpeg2000 = { version = "0.0", optional = true }
 oxideav-jpegxl = { version = "0.0", optional = true }
@@ -95,6 +97,8 @@ oxideav-pict = { version = "0.0", optional = true }
 oxideav-png = { version = "0.1", optional = true }
 oxideav-qoi = { version = "0.1", optional = true }
 oxideav-svg = { version = "0.1", optional = true }
+oxideav-tga = { version = "0.0", optional = true }
+oxideav-wbmp = { version = "0.0", optional = true }
 oxideav-webp = { version = "0.2", optional = true }
 
 # Containers (audio/video/mixed).
@@ -216,9 +220,9 @@ video = [
 
 # Image: still + animated image codecs + image-filter.
 image = [
-    "avif", "dds", "gif", "icer",
+    "avif", "dds", "farbfeld", "gif", "hdr", "icer",
     "jpeg2000", "jpegxl", "jpegxs", "openexr",
-    "pbm", "pdf", "pict", "png", "qoi", "svg", "webp",
+    "pbm", "pdf", "pict", "png", "qoi", "svg", "tga", "wbmp", "webp",
     "image-filter",
 ]
 
@@ -303,7 +307,9 @@ vp9 = ["dep:oxideav-vp9"]
 # Image codecs.
 avif = ["dep:oxideav-avif"]
 dds = ["dep:oxideav-dds"]
+farbfeld = ["dep:oxideav-farbfeld"]
 gif = ["dep:oxideav-gif"]
+hdr = ["dep:oxideav-hdr"]
 icer = ["dep:oxideav-icer"]
 jpeg2000 = ["dep:oxideav-jpeg2000"]
 jpegxl = ["dep:oxideav-jpegxl"]
@@ -315,6 +321,8 @@ pict = ["dep:oxideav-pict"]
 png = ["dep:oxideav-png"]
 qoi = ["dep:oxideav-qoi"]
 svg = ["dep:oxideav-svg"]
+tga = ["dep:oxideav-tga"]
+wbmp = ["dep:oxideav-wbmp"]
 webp = ["dep:oxideav-webp"]
 
 # Containers.

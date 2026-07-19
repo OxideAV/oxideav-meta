@@ -152,6 +152,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("jpegxl", "image-codec"),
     ("jpegxs", "image-codec"),
     ("openexr", "image-codec"),
+    ("pcx", "image-codec"),
     ("tga", "image-codec"),
     ("wbmp", "image-codec"),
     ("pbm", "image-codec"),

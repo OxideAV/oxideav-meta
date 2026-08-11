@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `oxideav-embroidery` wired in behind the new `assets` preset (and
+  `all`/`pure-rust`): machine-embroidery stitch formats register
+  through `register_all` under the new `asset-codec` category.
+
 - Categorisation surface for `ENABLED_SIBLINGS`:
   - `ENABLED_SIBLINGS_BY_CATEGORY: &[(&str, &[&str])]` — every entry
     in `ENABLED_SIBLINGS` grouped under a stable category label

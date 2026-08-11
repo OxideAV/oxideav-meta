@@ -78,6 +78,7 @@ const CATEGORY_ORDER: &[&str] = &[
     "audio-codec",
     "video-codec",
     "image-codec",
+    "asset-codec",
     "audio-filter",
     "image-filter",
     "container",
@@ -97,6 +98,8 @@ const CATEGORY_ORDER: &[&str] = &[
 /// `category_of_known_short` build-time check below to fail loud so
 /// future sibling-additions can't silently miss a category.
 const CATEGORY_TABLE: &[(&str, &str)] = &[
+    // Asset codecs.
+    ("embroidery", "asset-codec"),
     // Audio codecs.
     ("aac", "audio-codec"),
     ("ac3", "audio-codec"),

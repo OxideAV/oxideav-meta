@@ -219,6 +219,7 @@ fn enabled_siblings_by_category_section_order_is_stable() {
         "audio-codec",
         "video-codec",
         "image-codec",
+        "asset-codec",
         "audio-filter",
         "image-filter",
         "container",

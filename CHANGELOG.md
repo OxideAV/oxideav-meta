@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `musepack` and `wma` features: wire `oxideav-musepack` (SV7/SV8 decode +
+  encode, `MP+` / `MPCK` payload-magic claims) and `oxideav-wma` through
+  `register_all`; both included in the `audio` / `pure-rust` / `all`
+  bundles. Their crates.io lineage was rebaselined to 0.0.3 on 2026-08-30
+  (the earlier versions are the yanked pre-rebuild lineage).
 - `ape` feature: registers `oxideav-ape` (Monkey's Audio decoder +
   `'MAC '` payload-magic claim) through `register_all`; included in
   the `audio` / `pure-rust` / `all` bundles. Closes the round-449

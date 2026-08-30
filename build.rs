@@ -105,6 +105,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("ac3", "audio-codec"),
     ("ac4", "audio-codec"),
     ("adpcm", "audio-codec"),
+    ("ape", "audio-codec"),
     ("celt", "audio-codec"),
     ("flac", "audio-codec"),
     ("g711", "audio-codec"),

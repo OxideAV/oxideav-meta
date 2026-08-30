@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `ape` feature: registers `oxideav-ape` (Monkey's Audio decoder +
+  `'MAC '` payload-magic claim) through `register_all`; included in
+  the `audio` / `pure-rust` / `all` bundles. Closes the round-449
+  cross-crate finding that APE streams could not resolve through the
+  aggregator.
+
+### Added
+
 - `oxideav-embroidery` wired in behind the new `assets` preset (and
   `all`/`pure-rust`): machine-embroidery stitch formats register
   through `register_all` under the new `asset-codec` category.

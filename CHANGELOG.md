@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.2](https://github.com/OxideAV/oxideav-meta/compare/v0.0.1...v0.0.2) - 2026-09-04
+
+### Added
+
+- populate_render_registry — Phase C-3a wire render backends into meta
+- optional oxideav-render dep + render feature (Phase A scaffold)
+- add mpegts container + transitively pull it from bluray
+
+### Other
+
+- wire oxideav-mov / oxideav-tta / oxideav-svq / oxideav-riff + registry-collision audit
+- wire oxideav-wma + oxideav-musepack into the audio / pure-rust / all bundles (0.0.3 rebaseline carries the entry points)
+- wire oxideav-ape into the audio / pure-rust / all bundles (v0.0.3 carries the entry point)
+- wire oxideav-embroidery under the new asset-codec category (v0.0.2 carries the entry point)
+- wire pcx into the image bundle (v0.1.1 carries the entry point)
+- wire farbfeld / hdr / tga / wbmp into the image bundle
+- oxideav-prores 0.0 -> 0.1 (v0.1.0 released — 100% promotion)
+- follow oxideav-pdf 0.2 (major-bump pin propagation)
+- add CI / crates.io / docs.rs / MIT-license badges
+- ENABLED_SIBLINGS_BY_CATEGORY + const fn category_of()
+- drop release-plz.toml — use release-plz defaults across the workspace
+- wire 7 new siblings — cinepak + huffyuv + magicyuv + utvideo + shorten + dvd + vfw
+- expose ENABLED_SIBLINGS + ENABLED_SIBLINGS_ALL introspection slices
+- README + smoke test: catch up with current oxideav-meta API
+- bump oxideav-webp pin 0.1 → 0.2
+- bump oxideav-vp8 dependency pin 0.1 → 0.2
+- add oxideav-bluray to source-drivers preset
+- also SKIP oxideav-fbx in codec register_all walk
+- wire oxideav-fbx into Mesh3DRegistry under `fbx` / `3d` feature
+
 ### Added
 
 - `mov`, `tta`, `svq` and `riff` features: wire the four published

@@ -33,7 +33,9 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-/// Crates we depend on but that should NOT be in `register_all`:
+/// Crates we depend on but that should NOT be in `register_all` (see
+/// also [`LIBRARY_ONLY`] for siblings that are skipped but still
+/// surfaced through `ENABLED_LIBRARY_ONLY_SIBLINGS`):
 /// - `oxideav-core` is the foundation, not a register-emitting sibling.
 /// - The 3D crates (`oxideav-mesh3d` + the four format siblings) use a
 ///   separate dispatch contract: they register into a
@@ -49,6 +51,45 @@ const SKIP: &[&str] = &[
     "oxideav-usdz",
     "oxideav-fbx",
 ];
+
+/// Library-only siblings: crates that ship parsing primitives other
+/// siblings build on but expose **no** `register(ctx)` /
+/// `__oxideav_entry` (they put nothing into `RuntimeContext`). Their
+/// cargo feature pulls the crate into the dependency tree so a
+/// consumer of `oxideav-meta` can reach the API through its own direct
+/// dependency, but `register_all` emits no call for them and they are
+/// absent from `ENABLED_SIBLINGS`; `ENABLED_LIBRARY_ONLY_SIBLINGS`
+/// lists the enabled ones instead.
+///
+/// - `oxideav-riff` — RIFF chunk-walker + WAV/BWF metadata-chunk
+///   decoders (the foundation under WAV / AVI / WebP / ANI parsers).
+///   As of 0.0.2 the crate has no registry entry point; if a later
+///   release grows one, move it out of this list and into
+///   `CATEGORY_TABLE`.
+const LIBRARY_ONLY: &[&str] = &["oxideav-riff"];
+
+/// Siblings whose macro-generated `__oxideav_entry` does not live at
+/// the crate root. The `oxideav_core::register!` macro defines
+/// `__oxideav_entry` in the module it is invoked from; most siblings
+/// invoke it in `lib.rs` (or re-export it from there), but a few keep
+/// it inside a `registry` submodule without a root re-export. Map the
+/// crate short name to the full path `register_all` must call.
+///
+/// - `oxideav-mov` (0.0.5) — `oxideav_core::register!("mov", register)`
+///   is invoked inside `pub mod registry` and never re-exported at
+///   the root (`oxideav_mov::__oxideav_entry` does not resolve).
+const ENTRY_PATH_OVERRIDES: &[(&str, &str)] = &[("mov", "oxideav_mov::registry::__oxideav_entry")];
+
+/// Full path of the `__oxideav_entry` wrapper for a sibling short
+/// name: the override table first, else `oxideav_<short>::__oxideav_entry`.
+fn entry_path_for(short: &str) -> String {
+    for (s, path) in ENTRY_PATH_OVERRIDES {
+        if *s == short {
+            return (*path).to_string();
+        }
+    }
+    format!("oxideav_{}::__oxideav_entry", short.replace('-', "_"))
+}
 
 /// 3D format-codec crates. Each exposes `pub fn register(&mut
 /// oxideav_mesh3d::Mesh3DRegistry)` (gated behind its default-on
@@ -123,6 +164,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("opus", "audio-codec"),
     ("shorten", "audio-codec"),
     ("speex", "audio-codec"),
+    ("tta", "audio-codec"),
     ("vorbis", "audio-codec"),
     // Video codecs.
     ("amv", "video-codec"),
@@ -142,6 +184,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("mpeg4video", "video-codec"),
     ("msmpeg4", "video-codec"),
     ("prores", "video-codec"),
+    ("svq", "video-codec"),
     ("theora", "video-codec"),
     ("utvideo", "video-codec"),
     ("vp6", "video-codec"),
@@ -178,6 +221,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("iff", "container"),
     ("mkv", "container"),
     ("mod", "container"),
+    ("mov", "container"),
     ("mp4", "container"),
     ("ogg", "container"),
     ("s3m", "container"),
@@ -319,6 +363,9 @@ fn main() {
     // feature is enabled — used both for the register_all body and the
     // ENABLED_SIBLINGS_ALL static slice below.
     let mut enabled: Vec<(String, String, Option<String>)> = Vec::new();
+    // Enabled LIBRARY_ONLY siblings — no register call, surfaced via
+    // `ENABLED_LIBRARY_ONLY_SIBLINGS` only.
+    let mut library_only: Vec<(String, String)> = Vec::new();
     for (full_name, gate) in &deps {
         let short = full_name.strip_prefix("oxideav-").unwrap_or(full_name);
         let feature = feature_name_for(short);
@@ -326,11 +373,15 @@ fn main() {
         if env::var_os(&env_var).is_none() {
             continue; // feature off, skip
         }
-        let krate = format!("oxideav_{}", short.replace('-', "_"));
+        if LIBRARY_ONLY.contains(&full_name.as_str()) {
+            library_only.push((full_name.clone(), short.to_string()));
+            continue;
+        }
+        let entry = entry_path_for(short);
         if let Some(g) = gate {
             out.push_str(&format!("    #[cfg({g})]\n"));
         }
-        out.push_str(&format!("    {krate}::__oxideav_entry(ctx);\n"));
+        out.push_str(&format!("    {entry}(ctx);\n"));
         enabled.push((full_name.clone(), short.to_string(), gate.clone()));
     }
 
@@ -383,6 +434,24 @@ fn main() {
     out.push_str("/// [`ENABLED_SIBLINGS`]. Order: alphabetical by crate name.\n");
     out.push_str("pub const ENABLED_SIBLINGS_ALL: &[(&str, &str)] = &[\n");
     for (full_name, short, _gate) in &enabled {
+        out.push_str(&format!("    (\"{full_name}\", \"{short}\"),\n"));
+    }
+    out.push_str("];\n");
+
+    // Library-only siblings pulled in by the active feature set. They
+    // never appear in ENABLED_SIBLINGS (nothing is dispatched for
+    // them) — this slice is the only place a consumer can see that
+    // meta carried the dependency.
+    out.push('\n');
+    out.push_str("/// Library-only siblings the active feature set pulled into the\n");
+    out.push_str("/// dependency tree. These crates ship parsing primitives but expose\n");
+    out.push_str("/// no `register(ctx)` entry point, so [`register_all`] dispatches\n");
+    out.push_str("/// nothing for them and they are absent from [`ENABLED_SIBLINGS`] /\n");
+    out.push_str("/// [`category_of`]. Today: `oxideav-riff` (feature `riff`). Same\n");
+    out.push_str("/// `(crate_name, short_name)` shape as [`ENABLED_SIBLINGS`];\n");
+    out.push_str("/// alphabetical by crate name.\n");
+    out.push_str("pub const ENABLED_LIBRARY_ONLY_SIBLINGS: &[(&str, &str)] = &[\n");
+    for (full_name, short) in &library_only {
         out.push_str(&format!("    (\"{full_name}\", \"{short}\"),\n"));
     }
     out.push_str("];\n");
@@ -456,8 +525,9 @@ fn main() {
     out.push_str("/// Look up the stable category label for a sibling short name. Returns\n");
     out.push_str("/// `None` for short names that `register_all` never dispatches\n");
     out.push_str("/// (`oxideav-mesh3d`, `oxideav-stl`/`obj`/`gltf`/`usdz`/`fbx` — these\n");
-    out.push_str("/// route through `populate_mesh3d_registry` instead — and any string\n");
-    out.push_str("/// that isn't a known oxideav sibling).\n");
+    out.push_str("/// route through `populate_mesh3d_registry` instead — the library-only\n");
+    out.push_str("/// siblings in [`ENABLED_LIBRARY_ONLY_SIBLINGS`] such as `riff`, and any\n");
+    out.push_str("/// string that isn't a known oxideav sibling).\n");
     out.push_str("///\n");
     out.push_str("/// `const fn` so callers can fold it into `const` lookups and `static`\n");
     out.push_str("/// initialisers. The category set is the same as the one\n");

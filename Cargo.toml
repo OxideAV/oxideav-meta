@@ -57,6 +57,7 @@ oxideav-mp3 = { version = "0.1", optional = true }
 oxideav-opus = { version = "0.0", optional = true }
 oxideav-shorten = { version = "0.0", optional = true }
 oxideav-speex = { version = "0.0", optional = true }
+oxideav-tta = { version = "0.0", optional = true }
 oxideav-vorbis = { version = "0.0", optional = true }
 
 # Video codecs.
@@ -77,6 +78,7 @@ oxideav-mpeg12video = { version = "0.0", optional = true }
 oxideav-mpeg4video = { version = "0.1", optional = true }
 oxideav-msmpeg4 = { version = "0.0", optional = true }
 oxideav-prores = { version = "0.1", optional = true }
+oxideav-svq = { version = "0.0", optional = true }
 oxideav-theora = { version = "0.0", optional = true }
 oxideav-utvideo = { version = "0.0", optional = true }
 oxideav-vp6 = { version = "0.0", optional = true }
@@ -116,8 +118,16 @@ oxideav-flv = { version = "0.0", optional = true }
 oxideav-iff = { version = "0.0", optional = true }
 oxideav-mkv = { version = "0.0", optional = true }
 oxideav-mod = { version = "0.0", optional = true }
+oxideav-mov = { version = "0.0", optional = true }
 oxideav-mp4 = { version = "0.0", optional = true }
 oxideav-ogg = { version = "0.1", optional = true }
+# `oxideav-riff` is a LIBRARY-ONLY sibling: the RIFF chunk-walker +
+# WAV/BWF metadata-chunk decoders that the RIFF-family containers
+# (WAV, AVI, WebP, ANI, …) build on. It exposes no `register(ctx)` /
+# `__oxideav_entry` (nothing to put in `RuntimeContext`), so `build.rs`
+# keeps it in `LIBRARY_ONLY` — the `riff` feature pulls the crate into
+# the dependency tree but emits no `register_all` call.
+oxideav-riff = { version = "0.0", optional = true }
 oxideav-s3m = { version = "0.0", optional = true }
 
 # Subtitle crates.
@@ -211,9 +221,9 @@ pure-rust = ["audio", "video", "image", "assets", "subtitles", "3d", "source-dri
 audio = [
     "aac", "ac3", "ac4", "adpcm", "ape", "celt", "flac",
     "g711", "g722", "g7231", "g728", "g729", "gsm", "ilbc",
-    "mp1", "mp2", "mp3", "musepack", "opus", "shorten", "speex", "vorbis", "wma",
+    "mp1", "mp2", "mp3", "musepack", "opus", "shorten", "speex", "tta", "vorbis", "wma",
     "audio-filter",
-    "mkv", "mp4", "ogg", "iff", "amiga-mod", "s3m", "basic",
+    "mkv", "mov", "mp4", "ogg", "iff", "amiga-mod", "riff", "s3m", "basic",
 ]
 
 # Video: codecs + the containers commonly carrying video.
@@ -222,8 +232,8 @@ video = [
     "h261", "h263", "h264", "h265", "h266",
     "huffyuv", "magicyuv",
     "mjpeg", "mpeg12video", "mpeg4video", "msmpeg4",
-    "prores", "theora", "utvideo", "vp6", "vp8", "vp9",
-    "mkv", "mp4", "avi", "flv", "mpegts",
+    "prores", "svq", "theora", "utvideo", "vp6", "vp8", "vp9",
+    "mkv", "mov", "mp4", "avi", "riff", "flv", "mpegts",
 ]
 
 # Image: still + animated image codecs + image-filter.
@@ -293,6 +303,7 @@ mp3 = ["dep:oxideav-mp3"]
 opus = ["dep:oxideav-opus"]
 shorten = ["dep:oxideav-shorten"]
 speex = ["dep:oxideav-speex"]
+tta = ["dep:oxideav-tta"]
 vorbis = ["dep:oxideav-vorbis"]
 
 # Video codecs.
@@ -313,6 +324,7 @@ mpeg12video = ["dep:oxideav-mpeg12video"]
 mpeg4video = ["dep:oxideav-mpeg4video"]
 msmpeg4 = ["dep:oxideav-msmpeg4"]
 prores = ["dep:oxideav-prores"]
+svq = ["dep:oxideav-svq"]
 theora = ["dep:oxideav-theora"]
 utvideo = ["dep:oxideav-utvideo"]
 vp6 = ["dep:oxideav-vp6"]
@@ -351,8 +363,11 @@ flv = ["dep:oxideav-flv"]
 iff = ["dep:oxideav-iff"]
 mkv = ["dep:oxideav-mkv"]
 amiga-mod = ["dep:oxideav-mod"]
+mov = ["dep:oxideav-mov"]
 mp4 = ["dep:oxideav-mp4"]
 ogg = ["dep:oxideav-ogg"]
+# Library-only (see the dependency comment): no `register_all` call.
+riff = ["dep:oxideav-riff"]
 s3m = ["dep:oxideav-s3m"]
 
 # Subtitle.

@@ -9,6 +9,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `mov`, `tta`, `svq` and `riff` features: wire the four published
+  siblings that were missing from the aggregator.
+  - `mov` (`oxideav-mov` 0.0.5, QTFF demuxer + muxer, `.mov` / `.qt`,
+    `ftyp qt  ` probe) — `audio` / `video` / `pure-rust` / `all`.
+  - `tta` (`oxideav-tta` 0.0.4, True Audio codec + raw `.tta` demuxer,
+    `TTA1` probe) — `audio` / `pure-rust` / `all`.
+  - `svq` (`oxideav-svq` 0.0.3, Sorenson SVQ1 codec + SVQ3 decoder,
+    `SVQ1` / `svqi` / `SVQ3` FourCC claims) — `video` / `pure-rust` /
+    `all`.
+  - `riff` (`oxideav-riff` 0.0.2, RIFF chunk-walker + WAV/BWF metadata
+    decoders) — `audio` / `video` / `pure-rust` / `all`. Library-only:
+    the crate exposes no `register` entry point, so `register_all`
+    emits no call for it (build.rs `LIBRARY_ONLY`).
+- `ENABLED_LIBRARY_ONLY_SIBLINGS: &[(&str, &str)]` — introspection
+  slice for the library-only siblings the active feature set pulled in
+  (absent from `ENABLED_SIBLINGS`; `category_of` returns `None`).
+- build.rs `ENTRY_PATH_OVERRIDES`: siblings whose macro-generated
+  `__oxideav_entry` lives in a submodule without a crate-root re-export
+  (`oxideav-mov` keeps it in `registry`) are dispatched through the
+  full path instead of `oxideav_<short>::__oxideav_entry`.
+- `tests/sibling_wiring.rs`: per-feature smoke tests (each new
+  sibling's container name / extension / content probe / codec id /
+  FourCC tag resolves through the aggregate `RuntimeContext` exactly
+  as when registered alone) plus a registry-collision audit — codec-tag
+  claimants, duplicate payload magics, and container-probe winner
+  determinism across fresh registries. README gains a "Resolution
+  order" section documenting the alphabetical `register_all` order and
+  the per-surface tie rules. The audit found one real tie: `oxideav-mp4`
+  scores a `qt  `-branded `ftyp` as high as `oxideav-mov`, and the core
+  registry breaks probe ties in `HashMap` order, so a QuickTime file
+  may probe as either container until mp4 yields `qt  ` brands (mov
+  already yields non-QT brands to mp4). Pinned in `KNOWN_PROBE_TIES`.
+- README lists the siblings still pending a first crates.io release
+  (`oxideav-dts` — only version yanked; `oxideav-indeo`,
+  `oxideav-lagarith` — unpublished).
+
+### Changed
+
+- `register_all_populates_at_least_one_sub_registry` now keys off
+  `ENABLED_SIBLINGS`: a feature set that dispatches nothing
+  (`--features 3d`, `--features riff`) expects an empty context instead
+  of failing.
+
+### Added
+
 - `musepack` and `wma` features: wire `oxideav-musepack` (SV7/SV8 decode +
   encode, `MP+` / `MPCK` payload-magic claims) and `oxideav-wma` through
   `register_all`; both included in the `audio` / `pure-rust` / `all`

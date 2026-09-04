@@ -21,10 +21,10 @@
 //! dispatch shell works end-to-end.
 //!
 //! With non-default feature subsets (e.g. `default-features = false,
-//! features = ["3d"]`) `register_all` may legitimately be empty —
-//! every dep in that subset is in the build-script `SKIP` list. The
-//! `default = ["all"]` build is the only one where the populate
-//! assertion has to hold.
+//! features = ["3d"]` or `features = ["riff"]`) `register_all` may
+//! legitimately be empty — every dep in that subset is in the
+//! build-script `SKIP` / `LIBRARY_ONLY` lists. The populate assertion
+//! keys off `ENABLED_SIBLINGS`: empty slice ⇒ empty context expected.
 
 use oxideav_core::RuntimeContext;
 
@@ -44,6 +44,19 @@ fn register_all_populates_at_least_one_sub_registry() {
     let has_container = ctx.containers.demuxer_names().next().is_some()
         || ctx.containers.muxer_names().next().is_some();
     let has_source = ctx.sources.schemes().next().is_some();
+
+    // A build whose feature set dispatches nothing (`--features 3d`,
+    // `--features riff`, … — every enabled dep is in build.rs's SKIP /
+    // LIBRARY_ONLY lists) legitimately leaves the context empty; the
+    // generated `ENABLED_SIBLINGS` slice is the ground truth for
+    // whether anything *should* have registered.
+    if oxideav_meta::ENABLED_SIBLINGS.is_empty() {
+        assert!(
+            !(has_codec || has_container || has_source),
+            "register_all dispatches no sibling on this feature set, yet a sub-registry is populated",
+        );
+        return;
+    }
 
     // At least one populated registry. The `all` default features set
     // should produce many; this assertion only requires one so the
@@ -329,7 +342,7 @@ fn category_of_returns_none_for_skip_list_and_unknowns() {
     // route through `populate_mesh3d_registry`, not `register_all`, so
     // they must NOT have a register_all category. `category_of` should
     // return None for them. Same for outright-unknown strings.
-    for skip in &["mesh3d", "stl", "obj", "gltf", "usdz", "fbx"] {
+    for skip in &["mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "riff"] {
         assert_eq!(
             oxideav_meta::category_of(skip),
             None,

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `heif` feature: wire `oxideav-heif` 0.0.2 (HEIF / HEIC / MIAF container:
+  `heif` demuxer probing the HEIF-family `ftyp` brands, `heif` still codec
+  decoder + encoder, image-sequence tracks) — `image` / `pure-rust` /
+  `all`. `.avif` files keep resolving to `oxideav-avif` first through
+  the registry's probe priorities; `oxideav-heif` claims them only when
+  `avif` is not enabled.
+
 - `mov`, `tta`, `svq` and `riff` features: wire the four published
   siblings that were missing from the aggregator.
   - `mov` (`oxideav-mov` 0.0.5, QTFF demuxer + muxer, `.mov` / `.qt`,

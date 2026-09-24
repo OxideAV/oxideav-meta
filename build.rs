@@ -196,6 +196,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("farbfeld", "image-codec"),
     ("gif", "image-codec"),
     ("hdr", "image-codec"),
+    ("heif", "image-codec"),
     ("icer", "image-codec"),
     ("jpeg2000", "image-codec"),
     ("jpegxl", "image-codec"),

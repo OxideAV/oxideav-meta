@@ -87,6 +87,7 @@ oxideav-vp9 = { version = "0.0", optional = true }
 
 # Image codecs.
 oxideav-avif = { version = "0.0", optional = true }
+oxideav-heif = { version = "0.0", optional = true }
 oxideav-dds = { version = "0.0", optional = true }
 oxideav-farbfeld = { version = "0.0", optional = true }
 oxideav-gif = { version = "0.0", optional = true }
@@ -238,7 +239,7 @@ video = [
 
 # Image: still + animated image codecs + image-filter.
 image = [
-    "avif", "dds", "farbfeld", "gif", "hdr", "icer",
+    "avif", "dds", "farbfeld", "gif", "hdr", "heif", "icer",
     "jpeg2000", "jpegxl", "jpegxs", "openexr",
     "pbm", "pcx", "pdf", "pict", "png", "qoi", "svg", "tga", "wbmp", "webp",
     "image-filter",
@@ -333,6 +334,7 @@ vp9 = ["dep:oxideav-vp9"]
 
 # Image codecs.
 avif = ["dep:oxideav-avif"]
+heif = ["dep:oxideav-heif"]
 dds = ["dep:oxideav-dds"]
 farbfeld = ["dep:oxideav-farbfeld"]
 gif = ["dep:oxideav-gif"]

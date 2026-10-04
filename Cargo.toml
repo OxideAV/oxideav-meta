@@ -171,6 +171,7 @@ oxideav-fbx = { version = "0.0", optional = true }
 oxideav-ifc = { version = "0.0", optional = true }
 oxideav-vrml = { version = "0.0", optional = true }
 oxideav-x3d = { version = "0.0", optional = true }
+oxideav-step = { version = "0.0", optional = true }
 
 # 3D rasteriser / raycaster scaffold — consumes `Scene3D` from
 # `oxideav-mesh3d` and emits packed RGBA8. Phase A ships the trait
@@ -261,7 +262,7 @@ subtitles = ["ass", "sub-image", "subtitle"]
 # that consumes `Scene3D`. Wire them up at runtime via
 # `oxideav_meta::populate_mesh3d_registry(&mut reg)`. Preset name is `3d`
 # so it doesn't collide with the per-crate `mesh3d` feature.
-3d = ["mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml", "x3d", "render"]
+3d = ["mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml", "x3d", "step", "render"]
 
 # Hardware-accelerated codec crates. Each per-crate feature gates a
 # sibling that's only built on the targets the crate body supports
@@ -427,6 +428,7 @@ fbx = ["dep:oxideav-fbx", "mesh3d"]
 ifc = ["dep:oxideav-ifc", "mesh3d"]
 vrml = ["dep:oxideav-vrml", "mesh3d"]
 x3d = ["dep:oxideav-x3d", "mesh3d"]
+step = ["dep:oxideav-step", "mesh3d"]
 
 # 3D renderer (Scene3D → packed RGBA8). Pulls `mesh3d` because the
 # render trait takes `&Scene3D` as input.

@@ -52,6 +52,7 @@ const SKIP: &[&str] = &[
     "oxideav-fbx",
     "oxideav-ifc",
     "oxideav-vrml",
+    "oxideav-x3d",
 ];
 
 /// Library-only siblings: crates that ship parsing primitives other
@@ -106,6 +107,7 @@ const MESH3D_FORMAT_CRATES: &[(&str, &str)] = &[
     ("fbx", "register"),
     ("ifc", "register_mesh3d"),
     ("vrml", "register"),
+    ("x3d", "register"),
 ];
 
 /// Stable category labels emitted into `ENABLED_SIBLINGS_BY_CATEGORY`
@@ -537,7 +539,7 @@ fn main() {
     out.push_str("/// Look up the stable category label for a sibling short name. Returns\n");
     out.push_str("/// `None` for short names that `register_all` never dispatches\n");
     out.push_str(
-        "/// (`oxideav-mesh3d`, `oxideav-stl`/`obj`/`gltf`/`usdz`/`fbx`/`ifc`/`vrml` — these\n",
+        "/// (`oxideav-mesh3d`, `oxideav-stl`/`obj`/`gltf`/`usdz`/`fbx`/`ifc`/`vrml`/`x3d` — these\n",
     );
     out.push_str("/// route through `populate_mesh3d_registry` instead — the library-only\n");
     out.push_str("/// siblings in [`ENABLED_LIBRARY_ONLY_SIBLINGS`] such as `riff`, and any\n");

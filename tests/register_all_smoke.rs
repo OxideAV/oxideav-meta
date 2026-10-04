@@ -193,7 +193,7 @@ fn enabled_mesh3d_formats_subset_of_known_formats() {
     // `MESH3D_FORMAT_CRATES` table. Every entry in
     // `ENABLED_MESH3D_FORMATS` must come from that table; this guards
     // against an accidental free-form addition.
-    const KNOWN: &[&str] = &["stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml"];
+    const KNOWN: &[&str] = &["stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml", "x3d"];
     for short in oxideav_meta::ENABLED_MESH3D_FORMATS {
         assert!(
             KNOWN.contains(short),
@@ -343,7 +343,7 @@ fn category_of_returns_none_for_skip_list_and_unknowns() {
     // they must NOT have a register_all category. `category_of` should
     // return None for them. Same for outright-unknown strings.
     for skip in &[
-        "mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml", "riff",
+        "mesh3d", "stl", "obj", "gltf", "usdz", "fbx", "ifc", "vrml", "x3d", "riff",
     ] {
         assert_eq!(
             oxideav_meta::category_of(skip),
@@ -374,12 +374,12 @@ fn category_of_is_usable_in_const_context() {
     assert_eq!(CAT_UNKNOWN, None);
 }
 
-#[cfg(all(feature = "vrml", feature = "ifc"))]
+#[cfg(all(feature = "vrml", feature = "ifc", feature = "x3d"))]
 #[test]
-fn mesh3d_registry_resolves_vrml_and_ifc_extensions() {
+fn mesh3d_registry_resolves_vrml_ifc_x3d_extensions() {
     let mut reg = oxideav_mesh3d::Mesh3DRegistry::new();
     oxideav_meta::populate_mesh3d_registry(&mut reg);
-    for ext in ["wrl", "wrz", "ifc"] {
+    for ext in ["wrl", "wrz", "ifc", "x3d", "x3dv", "x3dz", "x3dj"] {
         assert!(
             reg.decoder_for_extension(ext).is_some(),
             "no 3D decoder registered for .{ext}",

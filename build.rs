@@ -50,6 +50,8 @@ const SKIP: &[&str] = &[
     "oxideav-gltf",
     "oxideav-usdz",
     "oxideav-fbx",
+    "oxideav-ifc",
+    "oxideav-vrml",
 ];
 
 /// Library-only siblings: crates that ship parsing primitives other
@@ -91,11 +93,20 @@ fn entry_path_for(short: &str) -> String {
     format!("oxideav_{}::__oxideav_entry", short.replace('-', "_"))
 }
 
-/// 3D format-codec crates. Each exposes `pub fn register(&mut
-/// oxideav_mesh3d::Mesh3DRegistry)` (gated behind its default-on
-/// `registry` feature). `populate_mesh3d_registry` calls each enabled
-/// crate's `register` so a single helper builds a full registry.
-const MESH3D_FORMAT_CRATES: &[&str] = &["stl", "obj", "gltf", "usdz", "fbx"];
+/// 3D format-codec crates as `(short name, registration fn)`. Each
+/// exposes `pub fn <fn>(&mut oxideav_mesh3d::Mesh3DRegistry)` (gated
+/// behind its default-on `registry` feature). `populate_mesh3d_registry`
+/// calls each enabled crate's function so a single helper builds a
+/// full registry.
+const MESH3D_FORMAT_CRATES: &[(&str, &str)] = &[
+    ("stl", "register"),
+    ("obj", "register"),
+    ("gltf", "register"),
+    ("usdz", "register"),
+    ("fbx", "register"),
+    ("ifc", "register_mesh3d"),
+    ("vrml", "register"),
+];
 
 /// Stable category labels emitted into `ENABLED_SIBLINGS_BY_CATEGORY`
 /// and returned by `category_of(short)`. The order here defines the
@@ -525,7 +536,9 @@ fn main() {
     out.push('\n');
     out.push_str("/// Look up the stable category label for a sibling short name. Returns\n");
     out.push_str("/// `None` for short names that `register_all` never dispatches\n");
-    out.push_str("/// (`oxideav-mesh3d`, `oxideav-stl`/`obj`/`gltf`/`usdz`/`fbx` — these\n");
+    out.push_str(
+        "/// (`oxideav-mesh3d`, `oxideav-stl`/`obj`/`gltf`/`usdz`/`fbx`/`ifc`/`vrml` — these\n",
+    );
     out.push_str("/// route through `populate_mesh3d_registry` instead — the library-only\n");
     out.push_str("/// siblings in [`ENABLED_LIBRARY_ONLY_SIBLINGS`] such as `riff`, and any\n");
     out.push_str("/// string that isn't a known oxideav sibling).\n");
@@ -597,13 +610,13 @@ fn main() {
     // codecs enabled) — registry stays empty but compiles cleanly.
     out.push_str("    let _ = registry;\n");
     let mut enabled_mesh: Vec<&'static str> = Vec::new();
-    for short in MESH3D_FORMAT_CRATES {
+    for &(short, register_fn) in MESH3D_FORMAT_CRATES {
         let env_var = env_var_for_feature(short);
         if env::var_os(&env_var).is_none() {
             continue;
         }
         let krate = format!("oxideav_{}", short.replace('-', "_"));
-        out.push_str(&format!("    {krate}::register(registry);\n"));
+        out.push_str(&format!("    {krate}::{register_fn}(registry);\n"));
         enabled_mesh.push(short);
     }
     out.push_str("}\n");

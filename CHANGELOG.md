@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `bmp`, `ico` and `tiff` features wire oxideav-bmp, oxideav-ico and oxideav-tiff into `register_all` (image-codec category, part of the `image` group); they were the three image crates the umbrella had but meta did not.
+
 ## [0.0.2](https://github.com/OxideAV/oxideav-meta/compare/v0.0.1...v0.0.2) - 2026-10-04
 
 ### Added

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `oxideav-webp` requirement moves to the 0.3 line (0.2 predates the image-crate contract and the registry container; the umbrella was linking both).
+
 ### Added
 
 - `bmp`, `ico` and `tiff` features wire oxideav-bmp, oxideav-ico and oxideav-tiff into `register_all` (image-codec category, part of the `image` group); they were the three image crates the umbrella had but meta did not.

@@ -31,7 +31,7 @@ build = "build.rs"
 # oxideav-core is non-optional — the slice walker + register! macro live
 # here. Every sibling depends on it transitively, but listing it
 # explicitly makes the workspace patch redirect work cleanly.
-oxideav-core = "0"
+oxideav-core = "0.1"
 
 # All sibling codec/container/filter/source crates as optional deps.
 # Audio codecs.
@@ -165,22 +165,22 @@ oxideav-vfw = { version = "0", optional = true }
 # Mesh3DRegistry. They use a SEPARATE dispatch contract from the
 # codec/container/filter/source `register_all` path — see
 # `populate_mesh3d_registry` in the generated module.
-oxideav-mesh3d = { version = "0", optional = true }
-oxideav-stl = { version = "0", optional = true }
-oxideav-obj = { version = "0", optional = true }
-oxideav-gltf = { version = "0", optional = true }
-oxideav-usdz = { version = "0", optional = true }
-oxideav-fbx = { version = "0", optional = true }
-oxideav-ifc = { version = "0", optional = true }
-oxideav-vrml = { version = "0", optional = true }
-oxideav-x3d = { version = "0", optional = true }
-oxideav-step = { version = "0", optional = true }
+oxideav-mesh3d = { version = "0.0", optional = true }
+oxideav-stl = { version = "0.0", optional = true }
+oxideav-obj = { version = "0.0", optional = true }
+oxideav-gltf = { version = "0.0", optional = true }
+oxideav-usdz = { version = "0.0", optional = true }
+oxideav-fbx = { version = "0.0", optional = true }
+oxideav-ifc = { version = "0.0", optional = true }
+oxideav-vrml = { version = "0.0", optional = true }
+oxideav-x3d = { version = "0.0", optional = true }
+oxideav-step = { version = "0.0", optional = true }
 
 # 3D rasteriser / raycaster scaffold — consumes `Scene3D` from
 # `oxideav-mesh3d` and emits packed RGBA8. Phase A ships the trait
 # + factory contract only; later phases land the scanline backend
 # (B) and pipeline source-node integration (C).
-oxideav-render = { version = "0", optional = true }
+oxideav-render = { version = "0.0", optional = true }
 
 # Hardware-accelerated codec crates — macOS-only (the crates are
 # `#![cfg(target_os = "macos")]`). The corresponding `audiotoolbox` /

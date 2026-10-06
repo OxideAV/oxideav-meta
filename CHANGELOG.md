@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Every `oxideav-*` dependency is required as `"0"` (any 0.x): meta is the one crate that links the whole fleet, so a minor bump of a sibling must never leave two copies of it in a consumer's graph. (Replaces the per-line `0.1` / `0.2` / `0.3` requirements.)
+- Codec / container / filter / source siblings are required as `"0"` (any 0.x): meta reaches them only through the `oxideav_core::register!` entry, so no API contract is needed and a sibling's minor bump must never leave two copies in a consumer's graph. Dependencies meta calls real functions on keep a versioned line: `oxideav-core` (`0.1`), `oxideav-mesh3d` + the 3D format crates (`0.0`, `register(&mut Mesh3DRegistry)`), `oxideav-render` (`0.0`, `register_into`).
 - `oxideav-webp` requirement moves to the 0.3 line (0.2 predates the image-crate contract and the registry container; the umbrella was linking both).
 
 ### Added

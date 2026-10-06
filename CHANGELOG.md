@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Every `oxideav-*` dependency is required as `"0"` (any 0.x): meta is the one crate that links the whole fleet, so a minor bump of a sibling must never leave two copies of it in a consumer's graph. (Replaces the per-line `0.1` / `0.2` / `0.3` requirements.)
 - `oxideav-webp` requirement moves to the 0.3 line (0.2 predates the image-crate contract and the registry container; the umbrella was linking both).
 
 ### Added

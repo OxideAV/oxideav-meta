@@ -33,6 +33,18 @@ build = "build.rs"
 # explicitly makes the workspace patch redirect work cleanly.
 oxideav-core = "0.1"
 
+# ── Version-requirement policy (user ruling 2026-10-06) ─────────────────
+# Siblings that meta reaches ONLY through the `oxideav_core::register!`
+# entry (`__oxideav_entry(ctx)` — every codec / container / filter /
+# source crate, and LIBRARY_ONLY ones) are required as `version = "0"`:
+# any 0.x. No API contract is consumed, so pinning a 0.1 / 0.2 line would
+# only let a sibling's minor bump leave TWO copies of it in a consumer's
+# graph (webp 0.2 + 0.3 in 2026-10: `register_all` installed the stale
+# copy). Dependencies meta calls a real function or type on keep a
+# versioned line: `oxideav-core` (RuntimeContext), `oxideav-mesh3d` and
+# the 3D format crates (`register(&mut Mesh3DRegistry)`), `oxideav-render`
+# (`register_into`). When wiring a new crate: `version = "0"` unless
+# build.rs or src/ names one of its items.
 # All sibling codec/container/filter/source crates as optional deps.
 # Audio codecs.
 oxideav-aac = { version = "0", optional = true }

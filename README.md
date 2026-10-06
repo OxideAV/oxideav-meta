@@ -255,6 +255,20 @@ The build script is a 200-line Rust program in `build.rs`:
 
 Adding a new sibling = add an optional dep line + a `name = ["dep:oxideav-name"]` feature line in `Cargo.toml`, plus a `CATEGORY_TABLE` row in `build.rs` (the build fails loud without it). The next build regenerates `register_all` automatically. Check where the sibling invokes `oxideav_core::register!` — if it is not at the crate root (or re-exported there), add an `ENTRY_PATH_OVERRIDES` row; if the crate has no `register` at all, add it to `LIBRARY_ONLY`.
 
+## Dependency version policy
+
+Siblings that meta reaches only through the `oxideav_core::register!`
+entry (every codec / container / filter / source crate) are required as
+`version = "0"` — any 0.x. meta consumes no API from them, so a narrower
+line would only let a sibling's minor bump leave two copies of that
+crate in a consumer's dependency graph, with `register_all` installing
+the stale one. Dependencies meta calls a real function or type on keep a
+versioned requirement: `oxideav-core` (`RuntimeContext`), `oxideav-mesh3d`
+and the 3D format crates (`register(&mut Mesh3DRegistry)`),
+`oxideav-render` (`register_into`). The rule is restated above
+`[dependencies]` in `Cargo.toml`; wiring a new crate means one
+`version = "0"` line unless `build.rs` or `src/` names one of its items.
+
 ## License
 
 MIT.

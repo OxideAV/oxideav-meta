@@ -9,6 +9,12 @@ name: CI
 #   tests the lib with `--no-default-features`, exercising the
 #   `oxideav-core`-free standalone path. Catches regressions where
 #   pipeline modules accidentally regrow an oxideav-core import.
+# * `off-umbrella` — packages this crate like `cargo publish` does,
+#   unpacks the `.crate` OUTSIDE the checkout and builds + tests a tiny
+#   consumer against it with a small feature subset resolved from
+#   crates.io (`tests/off_umbrella/run.sh`). Proves `build.rs` reads the
+#   NORMALIZED manifest cargo ships and that `register_all` is populated
+#   for a crates.io consumer — the published 0.0.2 was empty there.
 
 on:
   push:
@@ -43,4 +49,22 @@ jobs:
         run: cargo build --no-default-features --lib --verbose
 
       - name: Test (no-default-features)
-        run: cargo test --no-default-features --lib --verbose
+        run: cargo test --no-default-features --lib --test build_script_parser --verbose
+
+  off-umbrella:
+    name: Off-umbrella proof (packaged .crate + crates.io siblings)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # No rust-cache: nothing is built inside the checkout (the .crate
+      # is packaged with --no-verify and the consumer builds in
+      # $RUNNER_TEMP); the consumer's four-crate build is small.
+
+      # $RUNNER_TEMP is outside the checkout, so no workspace or
+      # [patch.crates-io] of ours can reach the unpacked crate.
+      - name: Package, unpack outside the checkout, build + test a consumer
+        run: tests/off_umbrella/run.sh "$RUNNER_TEMP/off-umbrella"

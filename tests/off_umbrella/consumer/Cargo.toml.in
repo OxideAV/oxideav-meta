@@ -1,0 +1,20 @@
+# Off-umbrella proof consumer for oxideav-meta (template; see ../run.sh).
+#
+# `run.sh` copies this directory next to an unpacked `oxideav-meta`
+# .crate and substitutes @META_PATH@ with that directory. The empty
+# `[workspace]` table pins this package as its own workspace root so no
+# enclosing umbrella `[patch.crates-io]` can redirect the siblings:
+# every `oxideav-*` crate below resolves from crates.io, exactly as it
+# does for a real consumer. The feature subset is deliberately small
+# (three image codecs, all published) so the proof builds in minutes.
+[package]
+name = "oxideav-meta-off-umbrella-proof"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dependencies]
+oxideav-core = "0.1"
+oxideav-meta = { path = "@META_PATH@", default-features = false, features = ["png", "farbfeld", "qoi"] }

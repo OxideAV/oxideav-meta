@@ -244,16 +244,48 @@ probe and one of them must yield.
 
 ## How the build script works
 
-The build script is a 200-line Rust program in `build.rs`:
+The build script is `build.rs` plus the manifest walker in `build/manifest.rs`:
 
-1. Reads this crate's own `Cargo.toml`.
-2. Walks the `[dependencies]` table and the recognized `[target.'cfg(...)'.dependencies]` tables (macOS / linux / linux-or-windows) and collects every `oxideav-*` dep.
+1. Reads this crate's own `Cargo.toml` — **in whichever shape cargo hands it**. In the git tree every dependency is an inline `oxideav-png = { … }` line under `[dependencies]` / `[target.'cfg(...)'.dependencies]`; in the published `.crate` (what every crates.io consumer builds from) cargo has *normalized* the manifest into one table per dependency (`[dependencies.oxideav-png]`, `[target.'cfg(target_os = "macos")'.dependencies.oxideav-videotoolbox]`, double-quoted keys possible, comments gone). The walker understands both and produces the same list for either; it fails the build loud if it cannot even find `oxideav-core`, or if an `oxideav-*` dep sits under a target gate it does not know.
+2. Collects every `oxideav-*` dep from `[dependencies]` and the recognized target gates (macOS / linux / linux-or-windows, `TARGET_GATES`), minus `SKIP` (core + the 3D crates).
 3. For each dep, checks whether its corresponding `CARGO_FEATURE_*` env var is set (cargo sets these for every enabled feature). If yes, emits a `oxideav_<short>::__oxideav_entry(ctx)` call into the generated `register_all` — or the path from `ENTRY_PATH_OVERRIDES` for siblings that keep the macro-generated entry inside a submodule (`oxideav_mov::registry::__oxideav_entry`). Deps in `LIBRARY_ONLY` (`oxideav-riff`) get no call and land in `ENABLED_LIBRARY_ONLY_SIBLINGS` instead. When the dep was target-gated, the same `cfg(...)` body is emitted verbatim as a `#[cfg(...)]` attribute on the call so cross-target builds still produce working code.
 4. Same logic for the five 3D-format crates → calls into `populate_mesh3d_registry`.
 5. Emits two static-slice introspection constants — [`ENABLED_SIBLINGS`] (current-target view, with target gates evaluated against `CARGO_CFG_TARGET_OS`) and [`ENABLED_SIBLINGS_ALL`] (cross-target superset). When `mesh3d` is on, also emits `ENABLED_MESH3D_FORMATS`.
 6. Writes the generated module to `$OUT_DIR/register_all.rs`; `src/lib.rs` pulls it in via `include!()`.
 
 Adding a new sibling = add an optional dep line + a `name = ["dep:oxideav-name"]` feature line in `Cargo.toml`, plus a `CATEGORY_TABLE` row in `build.rs` (the build fails loud without it). The next build regenerates `register_all` automatically. Check where the sibling invokes `oxideav_core::register!` — if it is not at the crate root (or re-exported there), add an `ENTRY_PATH_OVERRIDES` row; if the crate has no `register` at all, add it to `LIBRARY_ONLY`.
+
+### The published crate must register too (standing rule)
+
+`oxideav-meta` 0.0.2 shipped an empty `register_all` to every crates.io
+consumer: its `build.rs` line-parsed the in-tree manifest shape only, and
+the normalized manifest in the `.crate` has no `[dependencies]` section
+with inline entries at all. Nothing inside the umbrella could notice —
+there the git-tree manifest is the one being parsed. Two guards keep
+this from recurring:
+
+- `tests/build_script_parser.rs` includes `build/manifest.rs` verbatim
+  and parses the in-tree fixture, a trimmed real `cargo package` output
+  (`tests/fixtures/normalized.toml`), a synthesized normalization of the
+  live `Cargo.toml`, and the header/key edge cases (double-quoted
+  `cfg(…)` keys, quoted and dotted dependency keys, `[[test]]` arrays,
+  `dev-dependencies`, unknown target gates). Both shapes must yield the
+  identical dependency list.
+- The `off-umbrella` CI job (`tests/off_umbrella/run.sh`) runs
+  `cargo package --no-verify`, unpacks the `.crate` outside the checkout
+  (so no `[patch.crates-io]` can apply), and builds + tests a small
+  consumer (`tests/off_umbrella/consumer/`) against it with
+  `default-features = false, features = ["png", "farbfeld", "qoi"]`
+  resolved from crates.io. The consumer asserts `ENABLED_SIBLINGS` is
+  exactly those three and that a `RuntimeContext` after `register_all`
+  resolves the `png` decoder, container and demuxer. Run it locally with
+  `tests/off_umbrella/run.sh /some/dir/outside/the/workspace`
+  (`META_CRATE_FILE=…/oxideav-meta-X.Y.Z.crate` tests an existing
+  archive, e.g. a published release).
+
+Any change to `build.rs` / `build/manifest.rs` must keep the normalized
+manifest parsing on its own — reading `Cargo.toml.orig` is not a
+substitute, and a TOML dependency is not wanted for a parser this small.
 
 ## Dependency version policy
 

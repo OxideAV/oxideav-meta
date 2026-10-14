@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `register_all` is no longer empty when `oxideav-meta` is consumed from crates.io. `build.rs` only understood the in-tree manifest shape (inline `oxideav-x = { … }` lines under `[dependencies]`); the normalized manifest cargo writes into the published `.crate` has one `[dependencies.oxideav-x]` / `[target.'cfg(…)'.dependencies.oxideav-x]` table per dependency, so 0.0.2 found no sibling at all outside the umbrella and every consumer got an empty context. The manifest walker (`build/manifest.rs`) now reads both shapes (including cargo's double-quoted `cfg(…)` keys, quoted and dotted dependency keys), produces the same sorted list for either, and the build fails loud if it cannot find `oxideav-core` or meets an `oxideav-*` dependency under an unknown target gate — an empty `register_all` can no longer ship silently. Generated output for the in-tree manifest is byte-identical to before.
+
+### Added
+
+- `tests/build_script_parser.rs` — the build script's manifest walker, included verbatim, locked against the in-tree fixture, a trimmed real `cargo package` output (`tests/fixtures/normalized.toml`), a synthesized normalization of the live `Cargo.toml`, and the header / key edge cases; both shapes must yield the identical dependency list.
+- `off-umbrella` CI job + `tests/off_umbrella/run.sh`: packages the crate, unpacks the `.crate` outside the checkout, and builds + tests a small consumer against it with `png` / `farbfeld` / `qoi` from crates.io — asserts `ENABLED_SIBLINGS` and that `register_all` resolves the `png` decoder, container and demuxer. The README records the standing rule that `build.rs` must keep parsing the normalized manifest on its own.
+
 ### Changed
 
 - Codec / container / filter / source siblings are required as `"0"` (any 0.x): meta reaches them only through the `oxideav_core::register!` entry, so no API contract is needed and a sibling's minor bump must never leave two copies in a consumer's graph. Dependencies meta calls real functions on keep a versioned line: `oxideav-core` (`0.1`), `oxideav-mesh3d` + the 3D format crates (`0.0`, `register(&mut Mesh3DRegistry)`), `oxideav-render` (`0.0`, `register_into`).

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3](https://github.com/OxideAV/oxideav-meta/compare/v0.0.2...v0.0.3) - 2026-10-14
+
+### Other
+
+- the published crate must register too — normalized-manifest rule, parser harness, off-umbrella proof
+- off-umbrella proof — package, unpack outside the checkout, build + test a crates.io consumer
+- read the normalized manifest cargo ships — register_all was empty for every crates.io consumer
+
 ### Fixed
 
 - `register_all` is no longer empty when `oxideav-meta` is consumed from crates.io. `build.rs` only understood the in-tree manifest shape (inline `oxideav-x = { … }` lines under `[dependencies]`); the normalized manifest cargo writes into the published `.crate` has one `[dependencies.oxideav-x]` / `[target.'cfg(…)'.dependencies.oxideav-x]` table per dependency, so 0.0.2 found no sibling at all outside the umbrella and every consumer got an empty context. The manifest walker (`build/manifest.rs`) now reads both shapes (including cargo's double-quoted `cfg(…)` keys, quoted and dotted dependency keys), produces the same sorted list for either, and the build fails loud if it cannot find `oxideav-core` or meets an `oxideav-*` dependency under an unknown target gate — an empty `register_all` can no longer ship silently. Generated output for the in-tree manifest is byte-identical to before.

@@ -8,6 +8,16 @@
 //! and a custom feature subset get a slimmer `register_all` body with
 //! only the crates they asked for.
 //!
+//! The manifest walk lives in `build/manifest.rs` (shared with the
+//! `tests/build_script_parser.rs` harness). It understands both the
+//! in-tree manifest (`oxideav-png = { … }` lines under a section
+//! header) and the NORMALIZED manifest cargo writes into the published
+//! `.crate` (`[dependencies.oxideav-png]` — one table per dependency).
+//! The published 0.0.2 only read the former and shipped an empty
+//! `register_all` to every crates.io consumer; `main` below now fails
+//! the build outright if the walk finds no `oxideav-core`, and the
+//! `off-umbrella` CI job builds a consumer from a packaged `.crate`.
+//!
 //! Recognized target gates (the `cfg(...)` body is emitted verbatim as
 //! a `#[cfg(...)]` attribute on the generated `register` call so the
 //! cross-target build still produces working code):
@@ -33,28 +43,11 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-/// Crates we depend on but that should NOT be in `register_all` (see
-/// also [`LIBRARY_ONLY`] for siblings that are skipped but still
-/// surfaced through `ENABLED_LIBRARY_ONLY_SIBLINGS`):
-/// - `oxideav-core` is the foundation, not a register-emitting sibling.
-/// - The 3D crates (`oxideav-mesh3d` + the four format siblings) use a
-///   separate dispatch contract: they register into a
-///   `oxideav_mesh3d::Mesh3DRegistry` via `populate_mesh3d_registry`,
-///   not into the codec/container/filter/source RuntimeContext that
-///   `register_all` walks.
-const SKIP: &[&str] = &[
-    "oxideav-core",
-    "oxideav-mesh3d",
-    "oxideav-stl",
-    "oxideav-obj",
-    "oxideav-gltf",
-    "oxideav-usdz",
-    "oxideav-fbx",
-    "oxideav-ifc",
-    "oxideav-vrml",
-    "oxideav-x3d",
-    "oxideav-step",
-];
+/// Manifest walker (`SKIP`, `TARGET_GATES`, `walk_manifest`) — shared with `tests/build_script_parser.rs`.
+#[path = "build/manifest.rs"]
+mod manifest;
+
+use manifest::walk_manifest;
 
 /// Library-only siblings: crates that ship parsing primitives other
 /// siblings build on but expose **no** `register(ctx)` /
@@ -63,7 +56,9 @@ const SKIP: &[&str] = &[
 /// consumer of `oxideav-meta` can reach the API through its own direct
 /// dependency, but `register_all` emits no call for them and they are
 /// absent from `ENABLED_SIBLINGS`; `ENABLED_LIBRARY_ONLY_SIBLINGS`
-/// lists the enabled ones instead.
+/// lists the enabled ones instead. (Siblings that must not be
+/// dispatched at all — `oxideav-core`, the 3D crates — are in
+/// `manifest::SKIP`.)
 ///
 /// - `oxideav-riff` — RIFF chunk-walker + WAV/BWF metadata-chunk
 ///   decoders (the foundation under WAV / AVI / WebP / ANI parsers).
@@ -285,26 +280,6 @@ fn category_of_known_short(short: &str) -> &'static str {
     );
 }
 
-/// Each section's parser key (the normalized `Cargo.toml` table
-/// header with whitespace stripped) paired with the `cfg(...)` body
-/// to emit on the generated `register` call. `None` body = the plain
-/// `[dependencies]` section, no cfg attribute.
-const SECTIONS: &[(&str, Option<&str>)] = &[
-    ("dependencies", None),
-    (
-        "target.'cfg(target_os=\"macos\")'.dependencies",
-        Some("target_os = \"macos\""),
-    ),
-    (
-        "target.'cfg(target_os=\"linux\")'.dependencies",
-        Some("target_os = \"linux\""),
-    ),
-    (
-        "target.'cfg(any(target_os=\"linux\",target_os=\"windows\"))'.dependencies",
-        Some("any(target_os = \"linux\", target_os = \"windows\")"),
-    ),
-];
-
 /// Special feature-name overrides for crates whose feature name doesn't
 /// equal the crate short name. Currently just `oxideav-mod` →
 /// `amiga-mod` (avoids the `mod` Rust keyword as a feature).
@@ -321,11 +296,11 @@ fn env_var_for_feature(feat: &str) -> String {
     format!("CARGO_FEATURE_{}", feat.replace('-', "_").to_uppercase())
 }
 
-/// Evaluate a `SECTIONS` gate body (e.g. `target_os = "macos"` or
-/// `any(target_os = "linux", target_os = "windows")`) against the
-/// current build's target OS.
+/// Evaluate a `manifest::TARGET_GATES` gate body (e.g. `target_os =
+/// "macos"` or `any(target_os = "linux", target_os = "windows")`)
+/// against the current build's target OS.
 ///
-/// Only the gate shapes used by `SECTIONS` are recognised — anything
+/// Only the gate shapes used by `TARGET_GATES` are recognised — anything
 /// else returns `false` to err on the safe side (the gated entry stays
 /// out of [`ENABLED_SIBLINGS`]). The corresponding `#[cfg(...)]` on the
 /// `register_all` call is the authoritative check at compile time; the
@@ -348,9 +323,33 @@ fn gate_matches_target(gate: &str, target_os: &str) -> bool {
 
 fn main() {
     println!("cargo:rerun-if-changed=Cargo.toml");
+    println!("cargo:rerun-if-changed=build/manifest.rs");
 
     let manifest = fs::read_to_string("Cargo.toml").expect("read Cargo.toml");
-    let deps = collect_sibling_deps(&manifest);
+    let walked = walk_manifest(&manifest);
+
+    // Fail loud, never empty-and-quiet. `oxideav-core` is the one
+    // dependency every manifest shape carries (non-optional, versioned
+    // line): if the walk did not even see it, cargo wrote a manifest
+    // shape the parser does not understand — exactly how the published
+    // 0.0.2 ended up with an empty `register_all` for crates.io
+    // consumers. Likewise a sibling behind a target gate `TARGET_GATES`
+    // does not know must get a row, not silently vanish.
+    assert!(
+        walked.skipped.iter().any(|s| s == "oxideav-core"),
+        "build.rs: no `oxideav-core` dependency found in Cargo.toml — the manifest walker in \
+         build/manifest.rs does not understand this manifest shape (saw {} sibling deps, \
+         skipped {:?}); fix the walker, do not ship an empty register_all",
+        walked.deps.len(),
+        walked.skipped
+    );
+    assert!(
+        walked.unrecognized.is_empty(),
+        "build.rs: oxideav-* dependencies under target headers whose gate is not in \
+         build/manifest.rs TARGET_GATES: {:?} — add a (squeezed cfg body, emitted cfg body) row",
+        walked.unrecognized
+    );
+    let deps = walked.deps;
 
     let mut out = String::new();
     out.push_str(
@@ -480,7 +479,7 @@ fn main() {
     // label. Categories are emitted in the fixed `CATEGORY_ORDER` so
     // tooling can rely on a deterministic iteration order; within a
     // category, short names inherit the alphabetical sort already
-    // imposed by `collect_sibling_deps`. Empty categories are omitted
+    // imposed by `walk_manifest`. Empty categories are omitted
     // so a slim feature subset (e.g. `--features image`) produces a
     // compact slice instead of a list of empty sections.
     //
@@ -667,55 +666,4 @@ fn main() {
     let out_dir = PathBuf::from(env::var_os("OUT_DIR").expect("OUT_DIR set by cargo"));
     let dest = out_dir.join("register_all.rs");
     fs::write(&dest, out).expect("write register_all.rs");
-}
-
-/// Parse `Cargo.toml` for `oxideav-*` deps in any of the recognized
-/// `SECTIONS` headers. Returns `Vec<(crate_name, cfg_gate)>` where
-/// `cfg_gate = None` means the dep was in `[dependencies]` (no
-/// `#[cfg]` attribute on the generated call) and `Some(s)` means
-/// emit `#[cfg(s)]` on the call.
-///
-/// Output is sorted: `None` gates first (so the `[dependencies]`
-/// crates emit before the target-gated ones), then by gate string,
-/// then by crate name. Deterministic across runs.
-fn collect_sibling_deps(manifest: &str) -> Vec<(String, Option<String>)> {
-    let mut deps: Vec<(String, Option<String>)> = Vec::new();
-    let mut active: Option<Option<&'static str>> = None;
-
-    for line in manifest.lines() {
-        let trimmed = line.trim();
-
-        if trimmed.starts_with('[') {
-            let header: String = trimmed
-                .trim_start_matches('[')
-                .trim_end_matches(']')
-                .chars()
-                .filter(|c| !c.is_whitespace())
-                .collect();
-            active = SECTIONS
-                .iter()
-                .find(|(key, _)| *key == header)
-                .map(|(_, gate)| *gate);
-            continue;
-        }
-
-        let Some(gate) = active else {
-            continue;
-        };
-        if trimmed.is_empty() || trimmed.starts_with('#') {
-            continue;
-        }
-
-        let Some(eq) = trimmed.find('=') else {
-            continue;
-        };
-        let key = trimmed[..eq].trim();
-        if !key.starts_with("oxideav-") || SKIP.contains(&key) {
-            continue;
-        }
-        deps.push((key.to_string(), gate.map(|s| s.to_string())));
-    }
-
-    deps.sort();
-    deps
 }

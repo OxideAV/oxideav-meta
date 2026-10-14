@@ -1,0 +1,55 @@
+# In-tree manifest shape: the same dependency set as
+# `tests/fixtures/normalized.toml`, written the way `Cargo.toml` is
+# checked in (inline `name = { … }` entries under a section header,
+# organisational comments, a quoted key, dev-dependencies that must be
+# ignored). `tests/build_script_parser.rs` requires both fixtures to
+# parse to the identical dependency list.
+
+[package]
+name = "oxideav-meta"
+version = "0.0.2"
+edition = "2021"
+build = "build.rs"
+
+[dependencies]
+# Foundation — non-optional, versioned line (SKIP: never dispatched).
+oxideav-core = "0.1"
+
+# Audio codecs.
+oxideav-aac = { version = "0", optional = true }
+
+# Image codecs.
+"oxideav-png" = { version = "0", optional = true }
+
+# Containers.
+oxideav-mod = { version = "0", optional = true }
+oxideav-riff = { version = "0", optional = true } # library-only
+
+# 3D (SKIP: populate_mesh3d_registry, not register_all).
+oxideav-mesh3d = { version = "0.0", optional = true }
+oxideav-stl = { version = "0.0", optional = true }
+
+[dev-dependencies]
+# Never a register_all entry, whatever the name.
+oxideav-aac = { version = "0" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+oxideav-audiotoolbox = { version = "0", optional = true }
+oxideav-videotoolbox = { version = "0", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+oxideav-vaapi = { version = "0", optional = true }
+oxideav-vdpau = { version = "0", optional = true }
+oxideav-nvidia = { version = "0", optional = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
+oxideav-vulkan-video = { version = "0", optional = true }
+
+[features]
+default = ["all"]
+aac = ["dep:oxideav-aac"]
+png = ["dep:oxideav-png"]
+amiga-mod = ["dep:oxideav-mod"]
+riff = ["dep:oxideav-riff"]
+mesh3d = ["dep:oxideav-mesh3d"]
+stl = ["dep:oxideav-stl", "mesh3d"]

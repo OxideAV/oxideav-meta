@@ -310,7 +310,7 @@ mod svq {
 #[cfg(feature = "riff")]
 mod riff {
     use super::*;
-    use oxideav_riff::{Walker, FOURCC_RIFF};
+    use oxideav_riff::{FOURCC_RIFF, Walker};
 
     #[test]
     fn riff_is_library_only() {

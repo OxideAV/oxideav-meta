@@ -307,10 +307,10 @@ fn env_var_for_feature(feat: &str) -> String {
 /// build-script evaluator only feeds the introspection slice.
 fn gate_matches_target(gate: &str, target_os: &str) -> bool {
     let g: String = gate.chars().filter(|c| !c.is_whitespace()).collect();
-    if let Some(rest) = g.strip_prefix("target_os=\"") {
-        if let Some(os) = rest.strip_suffix('"') {
-            return os == target_os;
-        }
+    if let Some(rest) = g.strip_prefix("target_os=\"")
+        && let Some(os) = rest.strip_suffix('"')
+    {
+        return os == target_os;
     }
     if let Some(inner) = g.strip_prefix("any(").and_then(|s| s.strip_suffix(')')) {
         // any(target_os="linux",target_os="windows")
@@ -432,10 +432,10 @@ fn main() {
     out.push_str("/// ```\n");
     out.push_str("pub const ENABLED_SIBLINGS: &[(&str, &str)] = &[\n");
     for (full_name, short, gate) in &enabled {
-        if let Some(g) = gate {
-            if !gate_matches_target(g, &target_os) {
-                continue;
-            }
+        if let Some(g) = gate
+            && !gate_matches_target(g, &target_os)
+        {
+            continue;
         }
         out.push_str(&format!("    (\"{full_name}\", \"{short}\"),\n"));
     }
@@ -511,10 +511,10 @@ fn main() {
     for category in CATEGORY_ORDER {
         let mut shorts_in_cat: Vec<&str> = Vec::new();
         for (_full_name, short, gate) in &enabled {
-            if let Some(g) = gate {
-                if !gate_matches_target(g, &target_os) {
-                    continue;
-                }
+            if let Some(g) = gate
+                && !gate_matches_target(g, &target_os)
+            {
+                continue;
             }
             if category_of_known_short(short) == *category {
                 shorts_in_cat.push(short.as_str());

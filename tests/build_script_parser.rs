@@ -18,7 +18,7 @@
 #[path = "../build/manifest.rs"]
 mod manifest;
 
-use manifest::{walk_manifest, ManifestDeps, SKIP, TARGET_GATES};
+use manifest::{ManifestDeps, SKIP, TARGET_GATES, walk_manifest};
 
 const IN_TREE_FIXTURE: &str = include_str!("fixtures/in-tree.toml");
 const NORMALIZED_FIXTURE: &str = include_str!("fixtures/normalized.toml");
@@ -111,13 +111,17 @@ fn live_manifest_parses_every_sibling() {
     );
     assert!(walked.deps.contains(&dep("oxideav-png", None)));
     assert!(walked.deps.contains(&dep("oxideav-riff", None)));
-    assert!(walked
-        .deps
-        .contains(&dep("oxideav-videotoolbox", Some(MACOS))));
+    assert!(
+        walked
+            .deps
+            .contains(&dep("oxideav-videotoolbox", Some(MACOS)))
+    );
     assert!(walked.deps.contains(&dep("oxideav-vaapi", Some(LINUX))));
-    assert!(walked
-        .deps
-        .contains(&dep("oxideav-vulkan-video", Some(LINUX_OR_WINDOWS))));
+    assert!(
+        walked
+            .deps
+            .contains(&dep("oxideav-vulkan-video", Some(LINUX_OR_WINDOWS)))
+    );
     for skip in SKIP {
         assert!(
             !walked.deps.iter().any(|(n, _)| n == skip),
@@ -202,8 +206,10 @@ fn live_manifest_normalized_round_trip() {
         normalized.contains("[dependencies.oxideav-png]\nversion = \"0\"\noptional = true\n"),
         "synthesised normalization did not produce per-dependency tables:\n{normalized}"
     );
-    assert!(normalized
-        .contains("[target.'cfg(target_os = \"macos\")'.dependencies.oxideav-videotoolbox]\n"));
+    assert!(
+        normalized
+            .contains("[target.'cfg(target_os = \"macos\")'.dependencies.oxideav-videotoolbox]\n")
+    );
     assert_eq!(
         walk_manifest(&normalized),
         walk_manifest(LIVE_MANIFEST),

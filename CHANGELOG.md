@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/OxideAV/oxideav-meta/compare/v0.0.3...v0.0.4) - 2026-11-08
+
+### Other
+
+- NSF / NSFe playback in the audio preset (oxideav-nsf register! hook)
+- edition 2024, MSRV 1.95
+
 ### Added
 
 - `nsf` feature (in the `audio` preset): NSF / NSFe playback through

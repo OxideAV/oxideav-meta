@@ -238,6 +238,7 @@ const CATEGORY_TABLE: &[(&str, &str)] = &[
     ("mov", "container"),
     ("mp4", "container"),
     ("ogg", "container"),
+    ("nsf", "container"),
     ("s3m", "container"),
     ("mpegts", "container"),
     // Subtitles.

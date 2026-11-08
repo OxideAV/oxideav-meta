@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `nsf` feature (in the `audio` preset): NSF / NSFe playback through
+  `oxideav-nsf`, so the `oxideav` CLI and `oxideplay` open `.nsf` files.
+
 ### Changed
 
 - edition 2024, MSRV 1.95

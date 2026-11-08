@@ -144,6 +144,7 @@ oxideav-ogg = { version = "0", optional = true }
 # keeps it in `LIBRARY_ONLY` — the `riff` feature pulls the crate into
 # the dependency tree but emits no `register_all` call.
 oxideav-riff = { version = "0", optional = true }
+oxideav-nsf = { version = "0", optional = true }
 oxideav-s3m = { version = "0", optional = true }
 
 # Subtitle crates.
@@ -243,7 +244,7 @@ audio = [
     "g711", "g722", "g7231", "g728", "g729", "gsm", "ilbc",
     "mp1", "mp2", "mp3", "musepack", "opus", "shorten", "speex", "tta", "vorbis", "wma",
     "audio-filter",
-    "mkv", "mov", "mp4", "ogg", "iff", "amiga-mod", "riff", "s3m", "basic",
+    "mkv", "mov", "mp4", "ogg", "iff", "amiga-mod", "riff", "s3m", "nsf", "basic",
 ]
 
 # Video: codecs + the containers commonly carrying video.
@@ -392,6 +393,7 @@ mp4 = ["dep:oxideav-mp4"]
 ogg = ["dep:oxideav-ogg"]
 # Library-only (see the dependency comment): no `register_all` call.
 riff = ["dep:oxideav-riff"]
+nsf = ["dep:oxideav-nsf"]
 s3m = ["dep:oxideav-s3m"]
 
 # Subtitle.
